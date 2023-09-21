@@ -1,0 +1,1 @@
+# Decodes the machine code based on a given specification

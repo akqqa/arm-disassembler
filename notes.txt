@@ -1,0 +1,43 @@
+Example hand reverse disassembly:
+mul x4, x2, x5
+Convering to machine code based on spec:
+It is equivalent to MADD, However, this is just for when disassembling, and we are doing the opposite.
+10011011000Rm011111RnRd
+Rm is 5, so 00101
+Rn is 2, so 00010
+Rd is 4, so 00100
+So the machine code is:
+10011011000001010111110001000100
+
+to hex that is:
+
+9B057C44
+
+Which gives mul x4, x2, x5 in disasm.pro! (little endian so switch order of pairs)
+
+So, if it was being disassembled instead, youd have:
+10011011000001010111110001000100
+
+it would extract the relevant parts
+Rm = 00101 = 5
+Rn = 00010 = 2
+Rd = 00100 = 4
+
+Then it would See "is equivalent to" and plug it in those to that so it would give MADD W4, W2, W5, WZR instead
+
+					
+
+
+Ideas for translation:
+Equivalent instructions seem to always be of the form x... "is equivalent to" y... - can use this for parsing
+Two ways of defining variables - either can be anything an named in the first row, or name a set bit in the second row
+One challenge will be when multiple similar instructions are defined in the same area, all using the same variables
+Assembler symbols seems irrelevant
+Problem: on equivalent instructions, pseudocode for variables is not given!!!
+Once variables are calculated from pseudocode, look at the Assemlber Symbols section, and assign based on "imm12", "Rn" etc. 
+
+Ideas for decoding:
+The "Index by Encoding" section has tables that link to each other, effectively forming the decoder tree!
+
+
+Have to figure out xml parsing of docs
