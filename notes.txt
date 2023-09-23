@@ -41,3 +41,27 @@ The "Index by Encoding" section has tables that link to each other, effectively 
 
 
 Have to figure out xml parsing of docs
+https://github.com/alastairreid/mra_tools/blob/master/bin/instrs2asl.py is a good resource, this seems to have implemented the decode tree
+
+
+
+Understanding the encodingindex:
+According to the XSL file, the <hierarchy> section contains all the required info to create the decode tree.
+Upon inspection, it is formed of nodes, with each "group" node being the instruction class
+Taking Reserved for example, the regdiagram appears to be the diagram for the variables, after this is each allocation, with the variable values stored within - using an iclass and then "decode" section
+SME encodings on the other hand have many different tables, which seem to be hierarchical and move downwards along the tree 
+The XML is defined recursively, each time an instruction is defined, it is a groupname node, and along with the decode format to get match it, is the further tree for all sub categories
+So each iclass is purely an instruction class - either unallocated or points to a specific instruction
+Groupname is a pointer to an inner decode table
+Iclass, such as "mortlach_f64f64_prod" then links to another section in the xml, which in turn stores the xml file name of the instruction, which will then be used for dissasembly
+OHH it makes sense - the top level table is the entire thing! thats why groupnames are as such, and thats why theres a decode and diagram at the start of each table, theyre just another groupname
+
+Method to transform this into a decode tree:
+So the instruction will be matched to the first table via the top level table, then recursively until an iclass is found
+unsure how to turn this into a useful data structure however
+since the xml is recursive, then surely the data structure can be constructed recusrively too?
+start from the top level table, then move to the next node. 
+    if the node is a groupname - start the table creation process again, like if it were top level
+    if an iclass, enter this as the value
+easy!
+
