@@ -20,15 +20,17 @@ class InstructionEncoding():
         self.encodings = encodings
 
     def assignValues(self, instruction):
+        print(self.encodings)
+        values = []
         if len(instruction) != 32:
             return False
-        for var in self.encodings:
-            values = {}
+        for var in self.encodings.keys():
             start = 31 - self.encodings[var][0] # 31 - as the encoding is done 31-0 whereas arrays are 0-31
             end = start + self.encodings[var][1]
             value = instruction[start:end]
-            values[var] = value
-        return values
+            values.append((var, value))
+        print("values: " + str(values))
+        return tuple(values)
 
 
 class EncodingTable():
@@ -37,9 +39,9 @@ class EncodingTable():
     # Key: a flatted map of variable names to the matching pattern
     # Value: either an instruction name or a further encodingtable
 
-    entries = {}
-
     # Initialises with xml, which starts at the root node of the encoding table that will be converted to this class
+    # instructionEncoding - the instruction encoding to map variables on incoming instructions
+    # entries - the table, with keys being tuples of variable values to match, and values either being instructions or nested EncodingTables
     def __init__(self, hierarchy, debug=False):
         self.entries = {}
         variables = {}
@@ -53,7 +55,7 @@ class EncodingTable():
 
         # Iterate through each node, adding their entry to the table
         nodes = hierarchy.findall("node")
-        # If a groupname, create an dict of the mapping from the decode, then add to entires, with the value being a newly defined encodingtable with the xml parsed
+        # If a groupname, create an dict of the mapping from the decode, then add to entries, with the value being a newly defined encodingtable with the xml parsed
         # If an iclass, create an dict of the mapping from the decode, then add the name as the value
         for node in nodes:
             mapping = []
@@ -62,7 +64,7 @@ class EncodingTable():
             for box in boxes:
                 name = box.attrib["name"]
                 value = box.find("c").text
-                mapping += (name, value)
+                mapping.append((name, value))
             if "groupname" in node.attrib:
                 self.entries[tuple(mapping)] = EncodingTable(node)
             elif "iclass" in node.attrib:
@@ -77,15 +79,60 @@ class EncodingTable():
                 print("")
                 entry.print()
 
+    def decode(self, instruction):
+        # Extract variables from the instruction
+        values = self.instructionEncoding.assignValues(instruction)
+        
+
+        # Rules: patterns match if 1's and 0's match exactly, or != applies
+        # For each row of the encoding table, checks if each variable assignment of the row matches a variable in the instruction being matched
+        for row in self.entries.keys():
+            print("row being checked: " + str(row))
+            print("variable values: " + str(values))
+            matches = True
+            for tup in row:
+                if not self.matchVar(values, tup):
+                    matches = False
+            if matches:
+                print("matched!")
+                # This is the correct row
+                if type(self.entries[row]) is EncodingTable:
+                    return self.entries[row].decode(instruction)
+                else:
+                    return self.entries[row]
+        return None
+
+    def matchVar(self, vars, tup):
+        for var in vars:
+            if var[0] == tup[0]:
+                print(var[0])
+                print(tup[0])
+                # Check if var[1] matches tup[1]
+                if var[1] == None:
+                    return True
+                elif tup[1][0] != "!":
+                    for i in range(0, len(var[1])):
+                        if var[1][i] == tup[1][i] or tup[1][i] == "x":
+                            continue
+                        else:
+                            break
+                    return True # All characters in var and tup match so correctly matching
+                else:
+                    # Case with != at the start
+                    splitted = tup[1].split()
+                    if var[1] != splitted[1]:
+                        return True
+        return False        
+
 xml = et.parse("encodingindex.xml")
 root = xml.getroot()
 hierarchy = root.find("hierarchy")
-#print(hierarchy)
-
 
 table = EncodingTable(hierarchy)
-#print(table.instructionEncoding.encodings)
-table.print()
+#table.print()
+
+print(table.decode("11011010110000000010001010010110"))
+# current issue, incorrectly matches things!!
 
 # print(table.entries)
 
