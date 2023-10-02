@@ -42,33 +42,105 @@ class EncodingTable():
     # Initialises with xml, which starts at the root node of the encoding table that will be converted to this class
     # instructionEncoding - the instruction encoding to map variables on incoming instructions
     # entries - the table, with keys being tuples of variable values to match, and values either being instructions or nested EncodingTables
-    def __init__(self, hierarchy, debug=False):
-        self.entries = {}
-        variables = {}
-        # Use regdiagram to create the isntructionencoding for this table
-        regdiagram = hierarchy.find("regdiagram")
-        boxes = regdiagram.findall("box")
-        for box in boxes:
-            if "name" in box.attrib:
-                variables[box.attrib["name"]] = [int(box.attrib["hibit"]), int(box.attrib["width"])]
-        self.instructionEncoding = InstructionEncoding(variables)
-
-        # Iterate through each node, adding their entry to the table
-        nodes = hierarchy.findall("node")
-        # If a groupname, create an dict of the mapping from the decode, then add to entries, with the value being a newly defined encodingtable with the xml parsed
-        # If an iclass, create an dict of the mapping from the decode, then add the name as the value
-        for node in nodes:
-            mapping = []
-            decode = node.find("decode")
-            boxes = decode.findall("box")
+    def __init__(self, root, hierarchy, sect=False):
+        self.directname = None # Used only in cases where an iclass_sect has no table and is just one instruction name
+        # Handles regular tables and iclass_sects differently
+        if sect:
+            self.entries = {}
+            variables = {}
+            # Use the regdiagram to create instructionencoding for this table
+            regdiagram = hierarchy.find("regdiagram")
+            boxes = regdiagram.findall("box")
             for box in boxes:
-                name = box.attrib["name"]
-                value = box.find("c").text
-                mapping.append((name, value))
-            if "groupname" in node.attrib:
-                self.entries[tuple(mapping)] = EncodingTable(node)
-            elif "iclass" in node.attrib:
-                self.entries[tuple(mapping)] = node.attrib["iclass"]
+                if "name" in box.attrib:
+                    if "width" in box.attrib:
+                        varWidth = box.attrib["width"]
+                    else:
+                        varWidth = 1 #For some reason doesnt declare 1 width if the width is 1
+                    variables[box.attrib["name"]] = [int(box.attrib["hibit"]), int(varWidth)]
+            self.instructionEncoding = InstructionEncoding(variables)
+            #print(variables)
+
+            instructiontable = hierarchy.find("instructiontable")
+
+            tableVars = []
+            headers = instructiontable.find("thead").findall("tr")
+
+            # Special case if the table only has one row - just set a directname
+            if len(headers) == 1:
+                # Go into tbody, go into first tr, then first td. This contains the iformid!
+                instr_name = instructiontable.find("tbody").find("tr").attrib["encname"]
+                #print("directname")
+                self.directname = instr_name
+                return
+            # Otherwise, get the tableVars in order by reading the text of headings2's
+            ths = headers[1].findall("th") 
+            for th in ths:
+                tableVars.append(th.text)
+
+            # Next, go into the tbody. For each tr, select the first n td's where n is len(tableVars), get text 
+            # Then, each in a tuple with its expected value (the text), and push each of these into a mapping array
+            # Finally, append the tuple of this array as a key to the entires, with the encname as the value mapped
+            body = instructiontable.find("tbody")
+            for tr in body.findall("tr"):
+                mapping = []
+                #print(tableVars)
+                tds = tr.findall("td")
+                for i in range(0, len(tableVars)):
+                    #print(i)
+                    #print(tds)
+                    mapping.append((tableVars[i], tds[i].text))
+                self.entries[tuple(mapping)] = tr.attrib["encname"]
+
+
+        else:
+            self.entries = {}
+            variables = {}
+            # Use regdiagram to create the isntructionencoding for this table
+            regdiagram = hierarchy.find("regdiagram")
+            boxes = regdiagram.findall("box")
+            for box in boxes:
+                if "name" in box.attrib:
+                    variables[box.attrib["name"]] = [int(box.attrib["hibit"]), int(box.attrib["width"])]
+            self.instructionEncoding = InstructionEncoding(variables)
+
+            # Iterate through each node, adding their entry to the table
+            nodes = hierarchy.findall("node")
+            # If a groupname, create an dict of the mapping from the decode, then add to entries, with the value being a newly defined encodingtable with the xml parsed
+            # If an iclass, create an dict of the mapping from the decode, then add the name as the value
+            for node in nodes:
+                mapping = []
+                decode = node.find("decode")
+                boxes = decode.findall("box")
+                for box in boxes:
+                    name = box.attrib["name"]
+                    value = box.find("c").text
+                    mapping.append((name, value))
+                if "groupname" in node.attrib:
+                    self.entries[tuple(mapping)] = EncodingTable(root, node)
+                elif "iclass" in node.attrib:
+                    iclass_sects = root.findall(".//iclass_sect") 
+                    i = 0
+                    if (node.attrib["iclass"] == "dp_1src"):
+                        print(len(iclass_sects)) 
+                    else:
+                        print(node.attrib["iclass"]) # FOR SOME REASON, NOT PROPERLY WORKING, doesnt go thru all of the iclasses? idk why. only 93 of them.. hmm.
+                    for sect in iclass_sects:
+                        #print (i)
+                        i += 1
+                        # if (sect.attrib["id"] == "dp_1src"):
+                        #     print(sect.attrib["id"])
+                        #     print(node.attrib["iclass"])
+                        if sect.attrib["id"] == node.attrib["iclass"]:
+                            # print(i)
+                            # print(sect.attrib["id"])
+                            if (sect.attrib["id"]) == "dp_1src":
+                                print("exiting")
+                                quit()
+                            self.entries[tuple(mapping)] = EncodingTable(root, sect, True)
+                            return
+                    # If reached, no sect for this iclass
+                    self.entries[tuple(mapping)] = node.attrib["iclass"]
 
     def print(self):
         print(len(self.entries.values()))
@@ -82,7 +154,13 @@ class EncodingTable():
     def decode(self, instruction):
         # Extract variables from the instruction
         values = self.instructionEncoding.assignValues(instruction)
+
+        # If there is no table, just return the name of the instruction
+        if self.directname != None:
+            return self.directname
         
+        print("entries")
+        print(self.entries)
 
         # Rules: patterns match if 1's and 0's match exactly, or != applies
         # For each row of the encoding table, checks if each variable assignment of the row matches a variable in the instruction being matched
@@ -100,23 +178,24 @@ class EncodingTable():
                     return self.entries[row].decode(instruction)
                 else:
                     return self.entries[row]
+        print("none found")
         return None
 
     def matchVar(self, vars, tup):
         for var in vars:
             if var[0] == tup[0]:
-                print(var[0])
-                print(tup[0])
                 # Check if var[1] matches tup[1]
-                if var[1] == None:
+                if tup[1] == None:
                     return True
                 elif tup[1][0] != "!":
+                    matches = True
                     for i in range(0, len(var[1])):
                         if var[1][i] == tup[1][i] or tup[1][i] == "x":
                             continue
                         else:
-                            break
-                    return True # All characters in var and tup match so correctly matching
+                            matches = False
+                    if matches:
+                        return True # All characters in var and tup match so correctly matching
                 else:
                     # Case with != at the start
                     splitted = tup[1].split()
@@ -128,10 +207,19 @@ xml = et.parse("encodingindex.xml")
 root = xml.getroot()
 hierarchy = root.find("hierarchy")
 
-table = EncodingTable(hierarchy)
+table = EncodingTable(root, hierarchy)
 #table.print()
 
-print(table.decode("11011010110000000010001010010110"))
+# print("TEST")
+# iclass_sects = root.findall(".//iclass_sect")
+# i = 0
+# for sect in iclass_sects:
+#     i+=1
+#     if (sect.attrib["id"]) == "dp_1src":
+#         print(sect.attrib["id"])
+
+#print(table.decode("00000000000000000000000000000000"))
+#print(table.decode("11011010110000000010001010010110"))
 # current issue, incorrectly matches things!!
 
 # print(table.entries)
@@ -150,3 +238,5 @@ print(table.decode("11011010110000000010001010010110"))
 # Parse each table in the index by encoding section, storing each in a data structure
 # start at top level, assign values to instructionencoding, then use this to match with row of table,
 # then get up pointed to table, and assign the instruction encoding, repeating until instruction found
+
+# OKAY theres a whole nother section - the isects, which are a further encoding table for each iclass but in a different format. sigh
