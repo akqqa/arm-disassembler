@@ -3,8 +3,6 @@
 import xml.etree.ElementTree as et
 import sys
 
-sys.setrecursionlimit(10000)
-
 # Class to store the variable encoding of a binary instruction
 # Starts by being given the variable lengths and positions upon instantiation, then can be fed an actual binary string, where it will assign the variables to their actual values
 # Perhaps change this to simply return the values dict, instead of tying it inherently to the object for better representation of what is actually being done
@@ -20,7 +18,7 @@ class InstructionEncoding():
         self.encodings = encodings
 
     def assignValues(self, instruction):
-        print(self.encodings)
+        #print(self.encodings)
         values = []
         if len(instruction) != 32:
             return False
@@ -29,7 +27,7 @@ class InstructionEncoding():
             end = start + self.encodings[var][1]
             value = instruction[start:end]
             values.append((var, value))
-        print("values: " + str(values))
+        #print("values: " + str(values))
         return tuple(values)
 
 
@@ -87,8 +85,6 @@ class EncodingTable():
                 #print(tableVars)
                 tds = tr.findall("td")
                 for i in range(0, len(tableVars)):
-                    #print(i)
-                    #print(tds)
                     mapping.append((tableVars[i], tds[i].text))
                 self.entries[tuple(mapping)] = tr.attrib["encname"]
 
@@ -119,28 +115,16 @@ class EncodingTable():
                 if "groupname" in node.attrib:
                     self.entries[tuple(mapping)] = EncodingTable(root, node)
                 elif "iclass" in node.attrib:
-                    iclass_sects = root.findall(".//iclass_sect") 
-                    i = 0
-                    if (node.attrib["iclass"] == "dp_1src"):
-                        print(len(iclass_sects)) 
-                    else:
-                        print(node.attrib["iclass"]) # FOR SOME REASON, NOT PROPERLY WORKING, doesnt go thru all of the iclasses? idk why. only 93 of them.. hmm.
+                    iclass_sects = root.findall(".//iclass_sect")  # very inefficient, can cache for better performance
+                    found = False
                     for sect in iclass_sects:
-                        #print (i)
-                        i += 1
-                        # if (sect.attrib["id"] == "dp_1src"):
-                        #     print(sect.attrib["id"])
-                        #     print(node.attrib["iclass"])
                         if sect.attrib["id"] == node.attrib["iclass"]:
-                            # print(i)
-                            # print(sect.attrib["id"])
-                            if (sect.attrib["id"]) == "dp_1src":
-                                print("exiting")
-                                quit()
+                            found = True
                             self.entries[tuple(mapping)] = EncodingTable(root, sect, True)
-                            return
-                    # If reached, no sect for this iclass
-                    self.entries[tuple(mapping)] = node.attrib["iclass"]
+                            continue
+                    # If not found, no sect for this iclass
+                    if not found:
+                        self.entries[tuple(mapping)] = node.attrib["iclass"]
 
     def print(self):
         print(len(self.entries.values()))
@@ -159,26 +143,26 @@ class EncodingTable():
         if self.directname != None:
             return self.directname
         
-        print("entries")
-        print(self.entries)
+        #print("entries")
+        #print(self.entries)
 
         # Rules: patterns match if 1's and 0's match exactly, or != applies
         # For each row of the encoding table, checks if each variable assignment of the row matches a variable in the instruction being matched
         for row in self.entries.keys():
-            print("row being checked: " + str(row))
-            print("variable values: " + str(values))
+            #print("row being checked: " + str(row))
+            #print("variable values: " + str(values))
             matches = True
             for tup in row:
                 if not self.matchVar(values, tup):
                     matches = False
             if matches:
-                print("matched!")
+                #print("matched!")
                 # This is the correct row
                 if type(self.entries[row]) is EncodingTable:
                     return self.entries[row].decode(instruction)
                 else:
                     return self.entries[row]
-        print("none found")
+        #print("none found")
         return None
 
     def matchVar(self, vars, tup):
@@ -187,7 +171,7 @@ class EncodingTable():
                 # Check if var[1] matches tup[1]
                 if tup[1] == None:
                     return True
-                elif tup[1][0] != "!":
+                elif tup[1][0] != "!": # this wont catch all cases, see https://developer.arm.com/documentation/ddi0602/2023-09/Index-by-Encoding/SME-encodings?lang=en#mortlach_multi_indexed_3
                     matches = True
                     for i in range(0, len(var[1])):
                         if var[1][i] == tup[1][i] or tup[1][i] == "x":
@@ -218,9 +202,26 @@ table = EncodingTable(root, hierarchy)
 #     if (sect.attrib["id"]) == "dp_1src":
 #         print(sect.attrib["id"])
 
-#print(table.decode("00000000000000000000000000000000"))
-#print(table.decode("11011010110000000010001010010110"))
-# current issue, incorrectly matches things!!
+
+print(table.decode("00000000000000000000000000000000"))
+# ABS
+print(table.decode("11011010110000000010001010010110"))
+# HINT (YIELD) - this works, but slight complexity, as the first row defines everything as being hint
+# And then in the hint there is the pseudocode for figuring out which hint, dspite this also being in the table..
+# Perhaps implement a system so it first finds all matches, and then uses the one with the least Nones - aka closest match
+print(table.decode("11010101000000110010000000111111"))
+# FEXPA
+print("decoding 00000100011000001011100000000000: ")
+print(table.decode("00000100011000001011100000000000"))
+# FDOT (2-way, multiple and indexed vector, FP8 to FP16) - this ones weird - the docs dont match the xml perfectly
+print(table.decode("11000001000101011011100001000101"))
+# SQDMULH (multiple vectors)
+print(table.decode("11000001111000001011010000000000"))
+# FDOT (2-way, multiple and single vector, FP8 to FP16) - this again is unallocated, yet switching final 01 to 10 gives correct bfdot, maybe fdot not supported?
+print(table.decode("11000001001000000111000101001111"))
+# BFDOT
+print(table.decode("11000001001000000111000101010111"))
+
 
 # print(table.entries)
 
