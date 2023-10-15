@@ -65,3 +65,29 @@ start from the top level table, then move to the next node.
     if an iclass, enter this as the value
 easy!
 
+
+
+
+
+
+
+INSTRUCTION XML KEY ASPECTS
+
+all contained in an instructionsection tag
+docvars tag- info about general page - e.g what instruction set, whats the mnemonic for it, whats the instruction class
+desc - text descritpion of the instruction
+operationalnotes - human readable notes on the operation of the instruction
+alias_list - a list of possible aliases for this instruction? see other instructions for how its formatted
+classes- seems to hold the bulk of the instruction info - seems to be one iclass for each instruction encoding held on the page!
+    for each class:
+        regdiagram, store this as an instructionencoding perhaps? - note that can have variables named as filled values! better set out in xml
+        can have multiple encodings - eg for 32 and 64 bits, match against the xml for which
+            i think asm template is the instruction? unsure how the links works ://
+        then the pseudocode section, also with links
+
+the explanations section is also a KEY part
+contains explanations for how each encoding variable links to the asminstruction variables!
+nicely machine readable - either a strict mapping OR a definition with a table to match
+symbol contains the symbol it is in the asmtemplate, encodedin is the field it actually is!
+
+final psuedocode section not super relevant, as we dont need to simulate the instructions
