@@ -2,34 +2,7 @@
 
 import xml.etree.ElementTree as et
 import sys
-
-# Class to store the variable encoding of a binary instruction
-# Starts by being given the variable lengths and positions upon instantiation, then can be fed an actual binary string, where it will assign the variables to their actual values
-# Perhaps change this to simply return the values dict, instead of tying it inherently to the object for better representation of what is actually being done
-class InstructionEncoding():
-
-    # Default example encoding - [start position, length(inclusive)]
-    encodings = {
-        "op0": [31, 1],
-        "op1": [28, 4]
-    }
-
-    def __init__(self, encodings=encodings):
-        self.encodings = encodings
-
-    def assignValues(self, instruction):
-        #print(self.encodings)
-        values = []
-        if len(instruction) != 32:
-            return False
-        for var in self.encodings.keys():
-            start = 31 - self.encodings[var][0] # 31 - as the encoding is done 31-0 whereas arrays are 0-31
-            end = start + self.encodings[var][1]
-            value = instruction[start:end]
-            values.append((var, value))
-        #print("values: " + str(values))
-        return tuple(values)
-
+from common import *
 
 class EncodingTable():
 
@@ -86,7 +59,11 @@ class EncodingTable():
                 tds = tr.findall("td")
                 for i in range(0, len(tableVars)):
                     mapping.append((tableVars[i], tds[i].text))
-                self.entries[tuple(mapping)] = tr.attrib["encname"]
+                # If a file exists, set the mapping to the filename, otherwise encname
+                if "iformfile" in tr.attrib:
+                    self.entries[tuple(mapping)] = tr.attrib["iformfile"]
+                else:
+                    self.entries[tuple(mapping)] = tr.attrib["encname"]
 
 
         else:
@@ -187,20 +164,11 @@ class EncodingTable():
                         return True
         return False        
 
-xml = et.parse("encodingindex.xml")
+xml = et.parse("arm-files/encodingindex.xml")
 root = xml.getroot()
 hierarchy = root.find("hierarchy")
 
 table = EncodingTable(root, hierarchy)
-#table.print()
-
-# print("TEST")
-# iclass_sects = root.findall(".//iclass_sect")
-# i = 0
-# for sect in iclass_sects:
-#     i+=1
-#     if (sect.attrib["id"]) == "dp_1src":
-#         print(sect.attrib["id"])
 
 
 print(table.decode("00000000000000000000000000000000"))
@@ -221,6 +189,8 @@ print(table.decode("11000001111000001011010000000000"))
 print(table.decode("11000001001000000111000101001111"))
 # BFDOT
 print(table.decode("11000001001000000111000101010111"))
+
+print(table.decode("11111100010000000101110001000000"))
 
 
 # print(table.entries)

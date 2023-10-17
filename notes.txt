@@ -1,3 +1,9 @@
+TODO:
+- fix != in some cases
+- proper alias treatment
+- once entire skeelton around the pseudocode interpreting is built, only then work on it
+
+
 Example hand reverse disassembly:
 mul x4, x2, x5
 Convering to machine code based on spec:
@@ -91,3 +97,33 @@ nicely machine readable - either a strict mapping OR a definition with a table t
 symbol contains the symbol it is in the asmtemplate, encodedin is the field it actually is!
 
 final psuedocode section not super relevant, as we dont need to simulate the instructions
+
+<alias_list howmany="1">
+    <alias_list_intro>This instruction is used by the alias </alias_list_intro>
+    <aliasref aliaspageid="MOV_ADD_addsub_imm" aliasfile="mov_add_addsub_imm.xml" hover="Move between register and stack pointer" punct=".">
+      <text>MOV (to/from SP)</text>
+      <aliaspref>sh == '0' &amp;&amp; imm12 == '000000000000' &amp;&amp; (Rd == '11111' || Rn == '11111')</aliaspref>
+    </aliasref>
+    <alias_list_outro>
+      <text>  See </text>
+      <aliastablelink />
+      <text> below for details of when the alias is preferred.</text>
+    </alias_list_outro>
+  </alias_list>
+
+can have aliases, which on certain conditions link to a different instruction.
+
+for now, just store the aliases, can add substituting them based on conditions later on, not as crucial
+
+for 1:1 equivalence, see the <equivalentto> tag in mul_madd.xml.
+this is handled in the iclass section!, as specific for each class
+
+how will aliases work?
+match all instructions that fit
+check which point to which based on alias info
+then use this instruction
+MORE COMPLEX for stuff like mvn, as orn contains the pseudcode, but it should be showed as mvn..
+potential solution: always select the fitting instrction with the most aliases? this shodld give the base instruction, and aliases can then be used for dispaly
+
+
+
