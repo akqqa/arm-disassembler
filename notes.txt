@@ -1,6 +1,7 @@
 TODO:
 - fix != in some cases
 - proper alias treatment
+- proper encoding slection in instruction class
 - once entire skeelton around the pseudocode interpreting is built, only then work on it
 
 

@@ -3,6 +3,7 @@
 import xml.etree.ElementTree as et
 import sys
 from common import *
+from instruction import *
 
 class EncodingTable():
 
@@ -61,7 +62,8 @@ class EncodingTable():
                     mapping.append((tableVars[i], tds[i].text))
                 # If a file exists, set the mapping to the filename, otherwise encname
                 if "iformfile" in tr.attrib:
-                    self.entries[tuple(mapping)] = tr.attrib["iformfile"]
+                    #print(tr.attrib["iformfile"])
+                    self.entries[tuple(mapping)] = InstructionPage("arm-files/" + tr.attrib["iformfile"])
                 else:
                     self.entries[tuple(mapping)] = tr.attrib["encname"]
 
@@ -137,6 +139,9 @@ class EncodingTable():
                 # This is the correct row
                 if type(self.entries[row]) is EncodingTable:
                     return self.entries[row].decode(instruction)
+                elif type(self.entries[row]) is InstructionPage:
+                    # Return either name or the matched InstructionPage
+                    return self.entries[row].matchClass(instruction).possibleAsm
                 else:
                     return self.entries[row]
         #print("none found")
@@ -172,23 +177,31 @@ table = EncodingTable(root, hierarchy)
 
 
 print(table.decode("00000000000000000000000000000000"))
+print()
 # ABS
 print(table.decode("11011010110000000010001010010110"))
+print()
 # HINT (YIELD) - this works, but slight complexity, as the first row defines everything as being hint
 # And then in the hint there is the pseudocode for figuring out which hint, dspite this also being in the table..
 # Perhaps implement a system so it first finds all matches, and then uses the one with the least Nones - aka closest match
 print(table.decode("11010101000000110010000000111111"))
+print()
 # FEXPA
 print("decoding 00000100011000001011100000000000: ")
 print(table.decode("00000100011000001011100000000000"))
+print()
 # FDOT (2-way, multiple and indexed vector, FP8 to FP16) - this ones weird - the docs dont match the xml perfectly
 print(table.decode("11000001000101011011100001000101"))
+print()
 # SQDMULH (multiple vectors)
 print(table.decode("11000001111000001011010000000000"))
+print()
 # FDOT (2-way, multiple and single vector, FP8 to FP16) - this again is unallocated, yet switching final 01 to 10 gives correct bfdot, maybe fdot not supported?
 print(table.decode("11000001001000000111000101001111"))
+print()
 # BFDOT
 print(table.decode("11000001001000000111000101010111"))
+print()
 
 print(table.decode("11111100010000000101110001000000"))
 
