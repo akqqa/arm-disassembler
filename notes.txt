@@ -128,3 +128,12 @@ potential solution: always select the fitting instrction with the most aliases? 
 
 
 
+NOTE THAT EXPLANATION SECTION MAPS Rd etc. to Wd. etc. machine readable!!
+
+
+starting to think that pseudocode isnt even strictly necessary?
+cant you just use the encodings in the assembly +descriptions?
+
+yeah.. as seen in asr_z_p_zi.xml, even the value table is encoded??!!
+
+aliases will be tricky, but doable.

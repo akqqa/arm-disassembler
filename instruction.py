@@ -47,7 +47,7 @@ class InstructionPage():
                 else:
                     matches = False
             if matches:
-                return c
+                return c # Will return the correct class
         return None
 
     def print(self):
@@ -62,9 +62,9 @@ class InstructionClass():
         # Parse the regdiagram. Creating an instruction encoding for mapping variables, as well as an Instruction description to match instructions with the right class
         self.root = root
         variables = {}
-        self.instructionDescription = "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
-        # Use the regdiagram to create instructionencoding for this table
-        # At the same time, get the details to create the 
+        self.instructionDescription = "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx" # Will result in a string that matches the given instruction
+        # Use the regdiagram to create instructionencoding for this table - IS THIS EVEN NEEDED?> DONT THINK SO~!!!
+        # At the same time, get the details to create the instructiondescription
         regdiagram = root.find("regdiagram")
         boxes = regdiagram.findall("box")
         for box in boxes:
@@ -82,7 +82,10 @@ class InstructionClass():
                 instructionSection = ""
                 characters = box.findall("c")
                 for char in characters:
-                    instructionSection += char.text
+                    if char.text == "0" or char.text == "1":
+                        instructionSection += char.text
+                    else:
+                        instructionSection += "x"
                 # Replace the characters at the index in the instructionDescription with this section
                 self.instructionDescription = self.instructionDescription[:index] + instructionSection + self.instructionDescription[index + len(instructionSection):]
         self.instructionEncoding = InstructionEncoding(variables)
@@ -92,14 +95,23 @@ class InstructionClass():
         # For now, just getting the mnemonics
         self.possibleAsm = []
         # Code for each encoding section
-        self.EncodingSections = []
+        self.encodingSections = []
         for e in encodingSect:
-            self.EncodingSections.append(EncodingDetails(e))
-            asm = e.find("asmtemplate")
-            #mnemonic = asm.find("text").text # finds first instance of text- should be the mnemonic
-            self.possibleAsm.append(getASM(asm))
+            self.encodingSections.append(EncodingDetails(e))
 
-            # NOTE THE ENCODINGS USE A SIMILAR TECNNIQUE TO THE ISNTRUCTIONENCODING, MATCHING THE DIFFERENT VARS, REUSE THIS TO MATCH THE CORRECT ENCODING!
+    def matchEncoding(self, instString):
+        # For each encoding, check if the encodingDescription matches the instString!
+        for e in self.encodingSections:
+            matches = True
+            encoding = e.encodingDescription
+            for i in range(0, len(encoding)):
+                if instString[i] == encoding[i] or encoding[i] == "x":
+                    continue
+                else:
+                    matches = False
+            if matches:
+                return e # Will return the correct encoding
+        return None
 
 
     def print(self):
@@ -110,10 +122,36 @@ class InstructionClass():
 class EncodingDetails():
     
     def __init__(self, root):
-        # To do: create instructionencoding for this encoding
-        # Create tuple of expected values such as in the decoding script
-        # Put asmtemplate in encoding
+        # Create encodingDescription similar to instructionDescription in above class
+        boxes = root.findall("box")
+        self.encodingDescription = "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+        for box in boxes:
+            if "name" in box.attrib:
+                index = 31 - int(box.attrib["hibit"])
+                # Create a string corresponding to the digits in this box
+                encodingSection = ""
+                characters = box.findall("c")
+                for char in characters:
+                    if char.text == "0" or char.text == "1":
+                        encodingSection += char.text
+                    else:
+                        encodingSection += "x"
+                # Replace the characters at the index in the encodingDescription with this section
+                self.encodingDescription = self.encodingDescription[:index] + encodingSection + self.encodingDescription[index + len(encodingSection):]
+
+
+        self.asmTemplate = getASM(root.find("asmtemplate"))
+        #print(self.encodingDescription)
         return
+    
+    # # Checks if given instruction corresponds to this encoding, returning true or false
+    # def matchInstruction(self, instruction):
+    #     incomingValues = self.instructionEncoding.assignValues(instruction) # The values of the given instruction
+    #     existingValues = self.values # The values these should match
+
+
+
+
 
 
 #Helper function to output the ASM template
@@ -125,4 +163,9 @@ def getASM(asmelement):
 
 # In an encoding, there will be boxes with var names and <c>s similar to in decoding - how is it different?
 
-i1 = InstructionPage("arm-files/abs.xml")
+if __name__ == "__main__":
+    i1 = InstructionPage("arm-files/abs.xml")
+    instruction = "11011010110000000010001010010110"
+    print(i1.matchClass(instruction).matchEncoding(instruction).asmTemplate)
+
+

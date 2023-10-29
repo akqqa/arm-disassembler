@@ -141,7 +141,7 @@ class EncodingTable():
                     return self.entries[row].decode(instruction)
                 elif type(self.entries[row]) is InstructionPage:
                     # Return either name or the matched InstructionPage
-                    return self.entries[row].matchClass(instruction).possibleAsm
+                    return self.entries[row].matchClass(instruction).matchEncoding(instruction).asmTemplate
                 else:
                     return self.entries[row]
         #print("none found")
@@ -203,24 +203,52 @@ print()
 print(table.decode("11000001001000000111000101010111"))
 print()
 
-print(table.decode("11111100010000000101110001000000"))
+# https://developer.arm.com/documentation/ddi0602/2023-09/Base-Instructions/LDR--immediate---Load-Register--immediate--
+print("Wt ldr preindex:")
+print(table.decode("10111000010011010101110011010101"))
+print("Xt ldr preindex:")
+print(table.decode("11111000010011010101110011010101"))
 
+print("Wt LDR unsigned offset:")
+print(table.decode("10111001011010101010111010100101"))
+print("Xt LDR unsigned offset:")
+print(table.decode("11111001011010101010111010100101"))
+print()
 
-# print(table.entries)
+#F2CVTL{2} - apparently unallocated??? weird - OH cause its a feat
+print(table.decode("01101110011000010111100101010101"))
 
-# print(table.entries[('op0', '0', 'op1', '0000')].entries)
-    
-# # !!!
-# print(table.entries[('op0', '0', 'op1', '0000')].entries == table.entries)
+# Instead try FCVTN
+print(table.decode("01001110011000010110100101010101"))
 
-# test = InstructionEncoding()
-# print(test.encodings)
-# test.assignValues("10100101001101001010110101011001")
-# print(test.values)
+print(table.decode("11110000000000000001010000010010"))
+#Works!!
 
-# Decoding process:
-# Parse each table in the index by encoding section, storing each in a data structure
-# start at top level, assign values to instructionencoding, then use this to match with row of table,
-# then get up pointed to table, and assign the instruction encoding, repeating until instruction found
+# Example program (GENERATED WITH CHATGPT):
+# mov x0, #5 
+# mov x1, #7 
+# add x2, x0, x1
+# mov x8, #93 
+# svc #0  
+# Which in machine code is (according tohttps://armconverter.com/ )
+# A00080D2 - 10100000000000001000000011010010
+# E10080D2 - 11100001000000001000000011010010
+# 0200018B - 00000010000000000000000110001011
+# A80B80D2 - 10101000000010111000000011010010
+# 010000D4 - 00000001000000000000000011010100
 
-# OKAY theres a whole nother section - the isects, which are a further encoding table for each iclass but in a different format. sigh
+# D28000A0 - 11010010100000000000000010100000
+# D28000E1 - 11010010100000000000000011100001
+# 8B010002 - 10001011000000010000000000000010
+# D2800BA8 - 11010010100000000000101110101000
+# D4000001 - 11010100000000000000000000000001
+
+print()
+print("Decoding example program:")
+print(table.decode("11010010100000000000000010100000"))
+print(table.decode("11010010100000000000000011100001"))
+print(table.decode("10001011000000010000000000000010"))
+print(table.decode("11010010100000000000101110101000"))
+print(table.decode("11010100000000000000000000000001"))
+
+# IT WORKS!! important node - is big endian!
