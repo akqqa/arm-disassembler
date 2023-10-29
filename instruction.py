@@ -91,10 +91,13 @@ class InstructionClass():
         encodingSect = root.findall("encoding")
         # For now, just getting the mnemonics
         self.possibleAsm = []
+        # Code for each encoding section
+        self.EncodingSections = []
         for e in encodingSect:
+            self.EncodingSections.append(EncodingDetails(e))
             asm = e.find("asmtemplate")
-            mnemonic = asm.find("text").text # finds first instance of text- should be the mnemonic
-            self.possibleAsm.append(mnemonic)
+            #mnemonic = asm.find("text").text # finds first instance of text- should be the mnemonic
+            self.possibleAsm.append(getASM(asm))
 
             # NOTE THE ENCODINGS USE A SIMILAR TECNNIQUE TO THE ISNTRUCTIONENCODING, MATCHING THE DIFFERENT VARS, REUSE THIS TO MATCH THE CORRECT ENCODING!
 
@@ -103,6 +106,23 @@ class InstructionClass():
         print(self.root.attrib["name"])
         print(self.instructionDescription)
 
+# Contains infor to match encodiong within a class, as well as the asmtemplate matching
+class EncodingDetails():
+    
+    def __init__(self, root):
+        # To do: create instructionencoding for this encoding
+        # Create tuple of expected values such as in the decoding script
+        # Put asmtemplate in encoding
+        return
 
+
+#Helper function to output the ASM template
+def getASM(asmelement):
+    output = ""
+    for child in asmelement:
+        output += child.text
+    return output
+
+# In an encoding, there will be boxes with var names and <c>s similar to in decoding - how is it different?
 
 i1 = InstructionPage("arm-files/abs.xml")
