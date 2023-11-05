@@ -141,7 +141,7 @@ class EncodingTable():
                     return self.entries[row].decode(instruction)
                 elif type(self.entries[row]) is InstructionPage:
                     # Return either name or the matched InstructionPage
-                    return self.entries[row].matchClass(instruction).matchEncoding(instruction).asmTemplate
+                    return self.entries[row].disassemble(instruction)
                 else:
                     return self.entries[row]
         #print("none found")
@@ -251,4 +251,4 @@ print(table.decode("10001011000000010000000000000010"))
 print(table.decode("11010010100000000000101110101000"))
 print(table.decode("11010100000000000000000000000001"))
 
-# IT WORKS!! important node - is big endian!
+# IT WORKS!! important note - is big endian!

@@ -1,10 +1,16 @@
 TODO:
 - fix != in some cases
-- proper alias treatment
-- proper encoding slection in instruction class
+- proper alias treatment - LOOK INTO ALIASPREF section ininstruction page
 - once entire skeelton around the pseudocode interpreting is built, only then work on it
-
-
+- add explanation to instructionpage class (?)
+  -note that explanations can require docvars of the encodings etc.
+  - ACTUALLY!!! each explanation has an "enclist" which is the list of encodings it maps to!
+  so we simply have to for each explanation check the encoings it applies to and place them in that encoding!
+  assumes that expalnations are per class not page - will check this
+  no - explanations are per page
+  SO, once everything is made, the page can read explanations. for each it will serach through all encodings and add each explanations to the ones they match :)
+  https://developer.arm.com/documentation/ddi0602/2023-09/Base-Instructions/AND--immediate---Bitwise-AND--immediate--?lang=en
+  - see and_log_shift.xml for example of standard table - 1to1 mapping ebtwen var and value 
 Example hand reverse disassembly:
 mul x4, x2, x5
 Convering to machine code based on spec:

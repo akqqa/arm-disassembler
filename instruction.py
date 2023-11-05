@@ -20,7 +20,21 @@ import xml.etree.ElementTree as et
 # use pseudocode to map symbols
 # superclass can map these to the symbols, then the asmtemplate used!
 
+#explanation class
+# created per explanation xml, stores symbol, encoded in and potentialy table
+# created by instructionpage, put into every relevant encoding
+# method to take in an encoding map, and return the symbol and value!
 
+
+# HOW TO WORK - updated
+# When an instruction is receieved to be decoded, perform the following, in the instructionpage class:
+# match the instruction class the instruction is a part of
+# get the isntruction encoding of this instruction, to extract the variables
+# match the encoding the instruction belongs to
+# get a lisdt of the variables / map or whatever it is
+# for each explanation in the encoding, use the variable map to get the correct value
+# place these values in the asmtemplate of the encoding
+# return this template with values substituted in :)
 
 # The page for an intstruction - corresponds to an xml file on a particular instruction
 class InstructionPage():
@@ -36,6 +50,21 @@ class InstructionPage():
         for c in classes:
             # add to self.classes the InstructionClass constructed from it
             self.classes.append(InstructionClass(c))
+        # Add explanations to each encoding
+        self.encodings = [] # Is there even a point in instruction class? is is not easier to just use the encodings stored here?
+                            # YES! because it contains the regdiagram that will be needed for variable extraction :)
+        # Get all encodings
+        for c in self.classes:
+            for e in c.encodingSections:
+                self.encodings.append(e)
+        explanations = root.find("explanations")
+        for expXml in explanations:
+            # create explanation, search all subclasses and encodings for names, append to encodings with the right names
+            explanation = Explanation(expXml)
+            for e in self.encodings:
+                if e.name in explanation.enclist:
+                    # add this explanation to this encoding
+                    e.explanations.append(explanation)
 
     def matchClass(self, instString):
         for c in self.classes:
@@ -54,6 +83,25 @@ class InstructionPage():
         for c in self.classes:
             c.print()
 
+    # Should have a diassemble method, which performs all steps in subclasses it contains to decode and disassemble a given binary instruction
+    def disassemble(self, instruction):
+        # First, get correct class and encoding
+        iClass = self.matchClass(instruction)
+        encoding = iClass.matchEncoding(instruction)
+        # Get values from instructionencoding
+        values = iClass.instructionEncoding.assignValues(instruction)
+        symbols = []
+        # Get symbols from feeding values to each explanation
+        for exp in encoding.explanations:
+            symbols.append(exp.decodeSymbol(values))
+        # Get asm, replace each symbol in the string with the binary value (for now)
+        asm = encoding.asmTemplate
+        for symbol in symbols:
+            asm = asm.replace(symbol[0], str(int(symbol[1],2)))
+        return asm
+
+
+
 
 # The class of an instruction - correspodns to each individual iclass in an xml file
 class InstructionClass():
@@ -63,7 +111,7 @@ class InstructionClass():
         self.root = root
         variables = {}
         self.instructionDescription = "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx" # Will result in a string that matches the given instruction
-        # Use the regdiagram to create instructionencoding for this table - IS THIS EVEN NEEDED?> DONT THINK SO~!!!
+        # Use the regdiagram to create instructionencoding for this table - IS THIS EVEN NEEDED?> DONT THINK SO~!!! YS IT IS - FOR GETTING THE VARIABLES FOR EXPLANATIONS!!
         # At the same time, get the details to create the instructiondescription
         regdiagram = root.find("regdiagram")
         boxes = regdiagram.findall("box")
@@ -123,6 +171,8 @@ class EncodingDetails():
     
     def __init__(self, root):
         # Create encodingDescription similar to instructionDescription in above class
+        self.explanations = []
+        self.name = root.attrib["name"]
         boxes = root.findall("box")
         self.encodingDescription = "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
         for box in boxes:
@@ -143,12 +193,32 @@ class EncodingDetails():
         self.asmTemplate = getASM(root.find("asmtemplate"))
         #print(self.encodingDescription)
         return
-    
-    # # Checks if given instruction corresponds to this encoding, returning true or false
-    # def matchInstruction(self, instruction):
-    #     incomingValues = self.instructionEncoding.assignValues(instruction) # The values of the given instruction
-    #     existingValues = self.values # The values these should match
 
+# Class to store each explanation. Has a symbol, encodedin, and potentially a table.
+# give a method that takes in an encoding map, and returns the correct symbol and value!
+class Explanation():
+
+    # Here, root is <explanation>
+    def __init__(self, root):
+        self.enclist = root.attrib["enclist"].replace(" ", "").split(",")
+        self.symbol = root.find("symbol").text
+        if root.find("account") == None:
+            self.encodedIn = root.find("definition").attrib["encodedin"]
+            # do table stuff
+        else:
+            self.encodedIn = root.find("account").attrib["encodedin"]
+
+    # Values is a tuple of tuples ((imm, 01001), (Rn, 1101), ...)
+    def decodeSymbol(self, values):
+        # For now, ignore tables, simply extract the symbol matching encodedin, and return as a tuple from symbol to value
+        # Must account for : - simply get each simple, and combine the values! - normal is just a special case of : where there are none to append
+        encodedList = self.encodedIn.split(":")
+        result = ""
+        for sym in encodedList:
+            for tup in values:
+                if tup[0] == sym:
+                    result += tup[1]
+        return (self.symbol, result)
 
 
 
@@ -166,6 +236,5 @@ def getASM(asmelement):
 if __name__ == "__main__":
     i1 = InstructionPage("arm-files/abs.xml")
     instruction = "11011010110000000010001010010110"
-    print(i1.matchClass(instruction).matchEncoding(instruction).asmTemplate)
-
-
+    print(i1.matchClass(instruction).matchEncoding(instruction).explanations[0].symbol)
+    print(i1.disassemble(instruction))
