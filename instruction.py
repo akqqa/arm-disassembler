@@ -97,7 +97,7 @@ class InstructionPage():
         # Get asm, replace each symbol in the string with the binary value (for now)
         asm = encoding.asmTemplate
         for symbol in symbols:
-            asm = asm.replace(symbol[0], str(int(symbol[1],2)))
+            asm = asm.replace(symbol[0], symbol[1])
         return asm
 
 
@@ -202,23 +202,87 @@ class Explanation():
     def __init__(self, root):
         self.enclist = root.attrib["enclist"].replace(" ", "").split(",")
         self.symbol = root.find("symbol").text
+        self.table = []
+        # If no account, then is a table as uses definition instead
         if root.find("account") == None:
+            # If the first col is size, and the last includes M:Rm, encodedIn is size:M:Rm
             self.encodedIn = root.find("definition").attrib["encodedin"]
-            # do table stuff
+            # create table - row by row as a 2d array in self.table
+            tableRoot = root.find("definition").find("table")
+            tableHead = tableRoot.find("tgroup").find("thead")
+            headEntries = tableHead.find("row").findall("entry")
+            currentRow = []
+            for entry in headEntries:
+                currentRow.append(entry.text)
+            self.table.append(currentRow)
+            tableBody = tableRoot.find("tgroup").find("tbody")
+            rows = tableBody.findall("row")
+            for row in rows:
+                currentRow = []
+                entries = row.findall("entry")
+                for entry in entries:
+                    currentRow.append(entry.text)
+                self.table.append(currentRow)
         else:
             self.encodedIn = root.find("account").attrib["encodedin"]
 
     # Values is a tuple of tuples ((imm, 01001), (Rn, 1101), ...)
+    # Returns a tuple - (the symbol the value has been found for, and the resulting value)
     def decodeSymbol(self, values):
         # For now, ignore tables, simply extract the symbol matching encodedin, and return as a tuple from symbol to value
         # Must account for : - simply get each simple, and combine the values! - normal is just a special case of : where there are none to append
         encodedList = self.encodedIn.split(":")
-        result = ""
-        for sym in encodedList:
-            for tup in values:
-                if tup[0] == sym:
-                    result += tup[1]
-        return (self.symbol, result)
+
+       
+
+        # If no table, simply find the variable the symbol is encoded in, and return this
+        if self.table == []:
+            result = ""
+            for sym in encodedList:
+                for tup in values:
+                    if tup[0] == sym:
+                        result += tup[1]
+            # Convert binary to int
+            result = str(int(result, 2))
+            # Manually add X or W - note also V for vector? - should add a more complex check as can have V or Vd
+            if (len(self.symbol) > 1):
+                if (self.symbol[1] == "W"):
+                    result = "w" + result
+                elif (self.symbol[1] == "X"):
+                    result = "x" + result
+            return (self.symbol, result)
+        # Search the stored table to find the mapping
+        else:
+            rowLength = len(self.table[0])
+            values = list(values)
+            # Using the header row, create a list matching the variables in the columns to match
+            matchList = []
+            for i in range(0, len(self.table[0])-1):
+                var = self.table[0][i]
+                match = [tup[1] for tup in values if tup[0] == var]
+                matchList = matchList + match
+            # Then iterate through each row, matching the list of expected values
+            matchingRow = None
+            for row in self.table:
+                rowVars = row[:-1]
+                if (rowVars == matchList):
+                    matchingRow = row
+            if matchingRow == None:
+                print("Error: could not match the table - invalid machine code given")
+                quit()
+            # Once found, get the final result
+            result = matchingRow[-1]
+            splitResult = result.split(":")
+            finalResult = ""
+            for elem in splitResult:
+                # For each element, check if it is a name in values, and replace with that, otherwise leave alone
+                val = [tup[1] for tup in values if tup[0] == elem]
+                if len(val) != 0:
+                    finalRessult += val
+                else:
+                    finalResult += elem
+            # split by colons, replace with values in values, then concat and return
+            return (self.symbol, finalResult)
 
 
 

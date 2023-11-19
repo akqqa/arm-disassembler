@@ -143,3 +143,40 @@ cant you just use the encodings in the assembly +descriptions?
 yeah.. as seen in asr_z_p_zi.xml, even the value table is encoded??!!
 
 aliases will be tricky, but doable.
+
+
+
+
+complex test with vectors:
+ldr x4, [x3]
+ld1 {v0.4s}, [x0], #16
+ld1 {v1.4s}, [x1], #16
+st1 {v0.4s}, [x2], #16
+subs x4, x4, 4
+ret
+=
+F9400064
+4CDF7800
+4CDF7821
+4C9F7840
+F1001084
+D65F03C0
+=
+111110010100000000000000011001000100110011011111011110000000000001001100110111110111100000100001010011001001111101111000010000001111000100000000000100001000010011010110010111110000001111000000
+
+Currently returns
+LDR  x4, [x3{, #0}]
+LD1  { 0.5 }, [x0], 1
+LD1  { 1.5 }, [x1], 1
+ST1  { 0.5 }, [x2], 1
+SUBS  x4, x4, #4{, 0}
+RET  {x30}
+HOWEVER, this is due to tables not being implemented yet :) everything else is valid
+
+tables! now returns:
+LDR  x4, [x3{, #0}]
+LD1  { 0.4S }, [x0], #16
+LD1  { 1.4S }, [x1], #16
+ST1  { 0.4S }, [x2], #16
+SUBS  x4, x4, #4{, LSL #0}
+RET  {x30}
