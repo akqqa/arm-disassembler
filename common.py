@@ -24,3 +24,19 @@ class InstructionEncoding():
             values.append((var, value))
         #print("values: " + str(values))
         return tuple(values)
+
+
+# fst contains x's, snd does not
+def compareWithXs(fst, snd):
+    if len(fst) != len(snd):
+        return False
+    for i in range(0, len(fst)):
+        if fst[i] == "x":
+            continue
+        elif fst[i] == "1" and snd[i] == "1":
+            continue
+        elif fst[i] == "0" and snd[i] == "0":
+            continue
+        else:
+            return False
+    return True

@@ -229,9 +229,15 @@ class Explanation():
     # Values is a tuple of tuples ((imm, 01001), (Rn, 1101), ...)
     # Returns a tuple - (the symbol the value has been found for, and the resulting value)
     def decodeSymbol(self, values):
-        # For now, ignore tables, simply extract the symbol matching encodedin, and return as a tuple from symbol to value
         # Must account for : - simply get each simple, and combine the values! - normal is just a special case of : where there are none to append
         encodedList = self.encodedIn.split(":")
+        # SPECIAL CASE: https://developer.arm.com/documentation/ddi0602/2023-12/SIMD-FP-Instructions/UMOV--Unsigned-Move-vector-element-to-general-purpose-register-
+        # <row>
+        #     <entry class="bitfield">xxxx1</entry>
+        #     <entry class="symbol">imm5&lt;4:1&gt;</entry>
+        # </row>
+        # believe that imm5<4:1> is stating to get the 5th (from the end) and 2nd (from the end) bit of imm5?
+        # so do an additional check for <>'s, if so handle accordingly separate to other : splits
 
         # If no table, simply find the variable the symbol is encoded in, and return this
         if self.table == []:
@@ -243,11 +249,25 @@ class Explanation():
             # Convert binary to int
             result = str(int(result, 2))
             # Manually add X or W - note also V for vector? - should add a more complex check as can have V or Vd
+            # https://valsamaras.medium.com/arm-64-assembly-series-basic-definitions-and-registers-ec8cc1334e40#:~:text=The%20AArch64%20architecture%20also%20supports,(using%20b0%20to%20b31).
+            # ^ gives all possible register prefixes
             if (len(self.symbol) > 1):
                 if (self.symbol[1] == "W"):
                     result = "w" + result
                 elif (self.symbol[1] == "X"):
                     result = "x" + result
+                elif (self.symbol[1] == "V"):
+                    result = "v" + result
+                elif (self.symbol[1] == "Q"):
+                    result = "q" + result
+                elif (self.symbol[1] == "D"):
+                    result = "d" + result
+                elif (self.symbol[1] == "S"):
+                    result = "s" + result
+                elif (self.symbol[1] == "H"):
+                    result = "h" + result
+                elif (self.symbol[1] == "B"):
+                    result = "b" + result
             return (self.symbol, result)
         # Search the stored table to find the mapping
         else:
@@ -263,10 +283,11 @@ class Explanation():
             matchingRow = None
             for row in self.table:
                 rowVars = row[:-1]
-                if (rowVars == matchList):
+                if (all([compareWithXs(fst, snd) for fst, snd in zip(rowVars, matchList)])): #zips rowVars and matchList, then compares each element accounting for xs to check if the lists match
                     matchingRow = row
             if matchingRow == None:
                 print("Error: could not match the table - invalid machine code given")
+                print(values)
                 quit()
             # Once found, get the final result
             result = matchingRow[-1]

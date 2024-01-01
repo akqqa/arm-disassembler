@@ -1,7 +1,9 @@
 TODO:
+- add special case in explanation decoding for imm5<4:1> to treat it as 4:1st digits of imm5 rather than just imm5<4 ++ 1>
 - fix != in some cases
 - proper alias treatment - LOOK INTO ALIASPREF section ininstruction page
-- once entire skeelton around the pseudocode interpreting is built, only then work on it
+
+DONE:
 - add explanation to instructionpage class (?)
   -note that explanations can require docvars of the encodings etc.
   - ACTUALLY!!! each explanation has an "enclist" which is the list of encodings it maps to!
@@ -11,6 +13,7 @@ TODO:
   SO, once everything is made, the page can read explanations. for each it will serach through all encodings and add each explanations to the ones they match :)
   https://developer.arm.com/documentation/ddi0602/2023-09/Base-Instructions/AND--immediate---Bitwise-AND--immediate--?lang=en
   - see and_log_shift.xml for example of standard table - 1to1 mapping ebtwen var and value 
+
 Example hand reverse disassembly:
 mul x4, x2, x5
 Convering to machine code based on spec:
