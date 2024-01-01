@@ -4,6 +4,7 @@ import xml.etree.ElementTree as et
 import sys
 from common import *
 from instruction import *
+import pickle
 
 class EncodingTable():
 
@@ -169,20 +170,35 @@ class EncodingTable():
                         return True
         return False        
     
-    def disassemble(self, machineCode):
-        # Split into 32 bit instructions
-        instructions = [machineCode[i:i+32] for i in range(0, len(machineCode), 32)] # https://stackoverflow.com/a/9475354
-        for inst in instructions:
-            print(self.decode(inst))
+    def disassemble(self, filename):
+        file = open(filename, "rb")
+        bs = file.read(4)
+        while (bs):
+            # reverse the array, for endianness
+            bs = bs[::-1]
+            # Convert to binary
+            bs = [bin(x) for x in bs]
+            # Remove the 0b's
+            bs = [x[2:] for x in bs]
+            # finally, pad with leading 0's
+            bs = [addLeadingZeroes(x) for x in bs]
+            # Add all bytes, then decode the instruction
+            instruction = "".join(bs)
+            print(self.decode(instruction))
+            bs = file.read(4)
+
+def addLeadingZeroes(num):
+    leading = "0" * (8-len(num))
+    return leading + num
+
+
+
 
 if __name__ == "__main__":
-    xml = et.parse("arm-files/encodingindex.xml")
-    root = xml.getroot()
-    hierarchy = root.find("hierarchy")
+    file = open('data', 'rb')
+    table = pickle.load(file)
 
-    table = EncodingTable(root, hierarchy)
-
-    code = input("Enter machine code to disassemble:\n")
-    print("Assembly Code:\n\n")
-    table.disassemble(code)
+    filename = input("Enter binary file to disassemble:\n")
+    print("Assembly Code:")
+    table.disassemble(filename)
 

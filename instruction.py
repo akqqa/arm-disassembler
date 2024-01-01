@@ -233,8 +233,6 @@ class Explanation():
         # Must account for : - simply get each simple, and combine the values! - normal is just a special case of : where there are none to append
         encodedList = self.encodedIn.split(":")
 
-       
-
         # If no table, simply find the variable the symbol is encoded in, and return this
         if self.table == []:
             result = ""
@@ -278,7 +276,7 @@ class Explanation():
                 # For each element, check if it is a name in values, and replace with that, otherwise leave alone
                 val = [tup[1] for tup in values if tup[0] == elem]
                 if len(val) != 0:
-                    finalRessult += val
+                    finalResult += val[0]
                 else:
                     finalResult += elem
             # split by colons, replace with values in values, then concat and return
