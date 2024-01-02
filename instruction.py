@@ -59,6 +59,7 @@ class InstructionPage():
                 self.encodings.append(e)
         explanations = root.find("explanations")
         for expXml in explanations:
+            print(file)
             # create explanation, search all subclasses and encodings for names, append to encodings with the right names
             explanation = Explanation(expXml)
             for e in self.encodings:
@@ -207,6 +208,8 @@ class Explanation():
         if root.find("account") == None:
             # If the first col is size, and the last includes M:Rm, encodedIn is size:M:Rm
             self.encodedIn = root.find("definition").attrib["encodedin"]
+            # From reading over various xml files, gathered that tables always use encodedIn, if find something contrary, adjust as in the account version below
+
             # create table - row by row as a 2d array in self.table
             tableRoot = root.find("definition").find("table")
             tableHead = tableRoot.find("tgroup").find("thead")
@@ -224,11 +227,32 @@ class Explanation():
                     currentRow.append(entry.text)
                 self.table.append(currentRow)
         else:
-            self.encodedIn = root.find("account").attrib["encodedin"]
+            # UNFORTUNATELY - as seen in umov_advsimd.xml under index, encodedin can give the wrong thing, in the case of e.g subindexing the endcoded in, as it is only given in para. must instead parse para for it when no table
+            # luckily, this is just found by what is in the "" in the para
+            #self.encodedIn = root.find("account").attrib["encodedin"]
+            # Uses https://stackoverflow.com/a/11122355 for getting quote indices
+            encodingText = root.find("account").find("intro").find("para").text
+            print(encodingText)
+            quoteIndicies = [i for i, ltr in enumerate(encodingText) if ltr == "\""]
+            # Further special case if no encoding - for not just assume it will always be zero - case fo the mova.. instructions for 128 bits
+            if len(quoteIndicies) != 2:
+                self.encodedIn = ""
+                return
+            self.encodedIn = encodingText[quoteIndicies[0]+1:quoteIndicies[1]]
+
+            # REDUNDANT NOTES NEEDED IF TURNS OUT THAT THERE ARE CASES WHERE NO INTRO PRESENT FOR NON-TABLE EXPLANATIONS
+            # slightly more complex, as in cases of size:Q, only encoding, no para with "encoded in" message
+            # solution: check for para with "", if so encodedIn is in these quotes, otherwise is the encodedIn attrib :)
+            # so: search for intro then para, then get text, parse out "" if exists
+            # otherwise use encodedin attrib
+
 
     # Values is a tuple of tuples ((imm, 01001), (Rn, 1101), ...)
     # Returns a tuple - (the symbol the value has been found for, and the resulting value)
     def decodeSymbol(self, values):
+        # special case for mova on 128 bits, return 0 for an encoding of ""
+        if self.encodedIn == "":
+            return (self.symbol, "0")
         # Must account for : - simply get each simple, and combine the values! - normal is just a special case of : where there are none to append
         encodedList = self.encodedIn.split(":")
         # SPECIAL CASE: https://developer.arm.com/documentation/ddi0602/2023-12/SIMD-FP-Instructions/UMOV--Unsigned-Move-vector-element-to-general-purpose-register-
@@ -238,6 +262,7 @@ class Explanation():
         # </row>
         # believe that imm5<4:1> is stating to get the 5th (from the end) and 2nd (from the end) bit of imm5?
         # so do an additional check for <>'s, if so handle accordingly separate to other : splits
+        print(encodedList)
 
         # If no table, simply find the variable the symbol is encoded in, and return this
         if self.table == []:
@@ -251,6 +276,7 @@ class Explanation():
             # Manually add X or W - note also V for vector? - should add a more complex check as can have V or Vd
             # https://valsamaras.medium.com/arm-64-assembly-series-basic-definitions-and-registers-ec8cc1334e40#:~:text=The%20AArch64%20architecture%20also%20supports,(using%20b0%20to%20b31).
             # ^ gives all possible register prefixes
+            # maybe z as well?
             if (len(self.symbol) > 1):
                 if (self.symbol[1] == "W"):
                     result = "w" + result
@@ -290,6 +316,7 @@ class Explanation():
                 print(values)
                 quit()
             # Once found, get the final result
+                # NOTE FINAL RESULT COULD BE OF FORM IMM5<4:1> SO TAKE THIS INTO ACCOUNT TOO
             result = matchingRow[-1]
             splitResult = result.split(":")
             finalResult = ""
