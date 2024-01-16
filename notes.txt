@@ -4,7 +4,15 @@ TODO:
   extremely complex edge case: msr_imm and all related xmls. pseudocode is extremely complex and textual encodings rely on additional factors out of scope - simply cant really do this correctly at this current time
   another edge case: rprfm_reg, where the pseudocode doesnt help and the xml description is very complex and impossible to parse! lots of cases! 
   this is a limitation of the program therefore, BUT it does contain option<2>:option<0>:S:Rt<2:0> indicating this should be supported in case of other interactions
+
+  now, it splits correctly, just have to make it actually accound for the imm5<4:1> stuff properly now in and outside tables
+
 - fix != in some cases
+- MANY of the explanations have plaintext such as "encoded as "Zn" times 2 plus 1" etc.
+  occasionally with field before the times
+  fmlsl_za_zzi for example.
+  add checks to translate this into maths expression and perform these on the digits to get right decoding
+  even has modulo!
 - proper alias treatment - LOOK INTO ALIASPREF section ininstruction page
 
 DONE:

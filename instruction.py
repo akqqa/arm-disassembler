@@ -1,5 +1,7 @@
 from common import *
 import xml.etree.ElementTree as et
+import re
+import html
 
 # Class for storing instruction info - based on each instructions' xml file
 # Due to nature of instructions, should have one class for the xml, then contains many objects that are classes iclass
@@ -207,7 +209,7 @@ class Explanation():
         # If no account, then is a table as uses definition instead
         if root.find("account") == None:
             # If the first col is size, and the last includes M:Rm, encodedIn is size:M:Rm
-            self.encodedIn = root.find("definition").attrib["encodedin"]
+            self.encodedIn = html.unescape(root.find("definition").attrib["encodedin"])
             # From reading over various xml files, gathered that tables always use encodedIn, if find something contrary, adjust as in the account version below
 
             # create table - row by row as a 2d array in self.table
@@ -254,7 +256,8 @@ class Explanation():
         if self.encodedIn == "":
             return (self.symbol, "0")
         # Must account for : - simply get each simple, and combine the values! - normal is just a special case of : where there are none to append
-        encodedList = self.encodedIn.split(":")
+        encodedList = splitWithBrackets(self.encodedIn)
+
         # SPECIAL CASE: https://developer.arm.com/documentation/ddi0602/2023-12/SIMD-FP-Instructions/UMOV--Unsigned-Move-vector-element-to-general-purpose-register-
         # <row>
         #     <entry class="bitfield">xxxx1</entry>
@@ -262,15 +265,28 @@ class Explanation():
         # </row>
         # believe that imm5<4:1> is stating to get the 5th (from the end) and 2nd (from the end) bit of imm5?
         # so do an additional check for <>'s, if so handle accordingly separate to other : splits
-        print(encodedList)
+        #print(encodedList)
 
-        # If no table, simply find the variable the symbol is encoded in, and return this
+        # If no table, simply find the variable the symbol is encoded in, and return this (taking into account indexing with <> after symbol)
         if self.table == []:
             result = ""
             for sym in encodedList:
+                # Remove anything after < as this is ignored to match the possible symbols - https://stackoverflow.com/a/904756
+                symStrip = sym.split("<", 1)[0]
                 for tup in values:
-                    if tup[0] == sym:
+                    if tup[0] == symStrip:
                         result += tup[1]
+            # If has indices for parts of the binary, extract them and extract the correct ones from result
+            if "<" in sym:
+                indexes = sym.split("<",1)[1][:-1]
+                # Split by colons
+                indexes = indexes.split(":")
+                # Get each digit from result and concatenate to get new result
+                length = len(result)-1
+                newResult = ""
+                for index in indexes:
+                    newResult += result[length - int(index)]
+                result = newResult
             # Convert binary to int
             result = str(int(result, 2))
             # Manually add X or W - note also V for vector? - should add a more complex check as can have V or Vd
@@ -295,6 +311,7 @@ class Explanation():
                 elif (self.symbol[1] == "B"):
                     result = "b" + result
             return (self.symbol, result)
+
         # Search the stored table to find the mapping
         else:
             rowLength = len(self.table[0])
@@ -316,23 +333,29 @@ class Explanation():
                 print(values)
                 quit()
             # Once found, get the final result
-                # NOTE FINAL RESULT COULD BE OF FORM IMM5<4:1> SO TAKE THIS INTO ACCOUNT TOO
+            # NOTE FINAL RESULT COULD BE OF FORM IMM5<4:1> SO TAKE THIS INTO ACCOUNT TOO
             result = matchingRow[-1]
-            splitResult = result.split(":")
+            splitResult = splitWithBrackets(result) # This is the set of things to concatenate to get the result
             finalResult = ""
-            for elem in splitResult:
+            for elem in splitResult: # Each elem is H, B, imm5 in H:B:imm5
+                # Check if the element has <>
                 # For each element, check if it is a name in values, and replace with that, otherwise leave alone
-                val = [tup[1] for tup in values if tup[0] == elem]
+                val = [tup[1] for tup in values if tup[0] == elem.split("<", 1)[0]]
                 if len(val) != 0:
-                    finalResult += val[0]
+                    if "<" in elem:
+                        indexes = elem.split("<",1)[1][:-1]
+                        # Split by colons
+                        indexes = indexes.split(":")
+                        # Get each digit from result and concatenate to get new result
+                        length = len(val[0])-1
+                        result = ""
+                        for index in indexes:
+                            result += val[0][length - int(index)]
+                    finalResult += str(int(result, 2))
                 else:
                     finalResult += elem
             # split by colons, replace with values in values, then concat and return
             return (self.symbol, finalResult)
-
-
-
-
 
 #Helper function to output the ASM template
 def getASM(asmelement):
@@ -341,10 +364,46 @@ def getASM(asmelement):
         output += child.text
     return output
 
+# Helper function to split a string by colons, not including any colons inside &lt/&rt (</>)
+# e.g imm5<4:3>:imm4<3> = [imm5<4:3>, imm4<3>]
+def splitWithBrackets(inputStr):
+    # using https://stackoverflow.com/a/15599760
+    # All < must have an associated > to be well formed in the specification. Using this we can find the indices of each and only split on colons not between these
+    openingIndexes = [x.start() for x in re.finditer("<", inputStr)]
+    closingIndexes = [x.start() for x in re.finditer(">", inputStr)]
+    ranges = list(zip(openingIndexes, closingIndexes))
+    toSplit = []
+    splitList = []
+    for i in range(0, len(inputStr)):
+        char = inputStr[i]
+        if char == ":":
+            split = True # by default splits, unless found to be between brackets
+            for group in ranges:
+                if group[0] < i < group[1]: # colon shouldnt be split as between <>
+                    split = False
+            # Split if found to be in no groups
+            if split:
+                toSplit.append(i)
+    # Now using toSplit, split string on each index
+    start = 0
+    for index in toSplit:
+        splitString = inputStr[start:index]
+        splitList.append(splitString)
+        start = index+1
+    # Finally add last substring to the list
+    splitList.append(inputStr[start:])
+    return splitList
+
+
+
+            
+
+
 # In an encoding, there will be boxes with var names and <c>s similar to in decoding - how is it different?
 
 if __name__ == "__main__":
-    i1 = InstructionPage("arm-files/abs.xml")
-    instruction = "11011010110000000010001010010110"
-    print(i1.matchClass(instruction).matchEncoding(instruction).explanations[0].symbol)
-    print(i1.disassemble(instruction))
+    splitWithBrackets("imm5<4:3>:imm4<3>")
+    # i1 = InstructionPage("arm-files/abs.xml")
+    # instruction = "11011010110000000010001010010110"
+    # print(i1.matchClass(instruction).matchEncoding(instruction).explanations[0].symbol)
+    # print(i1.disassemble(instruction))
