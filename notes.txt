@@ -195,3 +195,38 @@ LD1  { 1.4S }, [x1], #16
 ST1  { 0.4S }, [x2], #16
 SUBS  x4, x4, #4{, LSL #0}
 RET  {x30}
+
+
+
+ISsue with explanation encodins: often have "off2" field times 2 plus 1. etc.
+
+all encoded as are equations
+all encoded in are single fields!!!
+
+verified this with checks when pickling
+
+encoded as ___.
+
+so match the encoded as
+get everything between that and the following .
+then sub the terms and the symbol!
+EZ
+
+can have "o1" field or just "01" SO just strip the word field.
+
+encoded as also includes concatenation with :
+
+after encoded as:
+
+get the string after that until the .
+calculate the symbol in "" as usual
+replace "..." with the calcualted value
+remove field.
+
+
+naive approach: replace "times", "plus", "modulo" with the characters then calculate
+however, potential malicious code execution!
+nope. try a simple parser instead. the implementation is ez lol u did it in pldi
+
+okayyy so Equation doesnt work as a lib cause it has good ordering.
+going to write my own function as a simple stack. push on each value, (space separated), and apply the following operation to it :)

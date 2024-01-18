@@ -2,6 +2,8 @@ from common import *
 import xml.etree.ElementTree as et
 import re
 import html
+#https://pypi.org/project/Equation/
+import Equation
 
 # Class for storing instruction info - based on each instructions' xml file
 # Due to nature of instructions, should have one class for the xml, then contains many objects that are classes iclass
@@ -234,13 +236,29 @@ class Explanation():
             #self.encodedIn = root.find("account").attrib["encodedin"]
             # Uses https://stackoverflow.com/a/11122355 for getting quote indices
             encodingText = root.find("account").find("intro").find("para").text
-            print(encodingText)
+            if "encoded as" in encodingText:
+                print(encodingText)
             quoteIndicies = [i for i, ltr in enumerate(encodingText) if ltr == "\""]
             # Further special case if no encoding - for not just assume it will always be zero - case fo the mova.. instructions for 128 bits
             if len(quoteIndicies) != 2:
                 self.encodedIn = ""
                 return
             self.encodedIn = encodingText[quoteIndicies[0]+1:quoteIndicies[1]]
+
+            # Furthermore, for possible mathematical operations, grab all text between "encoded as" and "." if present
+            match = re.search("encoded as (.*)\.", encodingText)
+            if match: # transform and save the resulting equation
+                # replace the symbol (in quotes), with the variable x
+                match = re.sub("\".*\"", "x", match)
+                # replace mathematical words with symbols
+                match = match.replace("times", "*")
+                match = match.replace("plus", "+")
+                match = match.replace("modulo", "%")
+                match = match.replace("minus", "-")
+                # remove "field"
+                match = match.replace("field", "")
+                # save equation
+                self.equation = match
 
             # REDUNDANT NOTES NEEDED IF TURNS OUT THAT THERE ARE CASES WHERE NO INTRO PRESENT FOR NON-TABLE EXPLANATIONS
             # slightly more complex, as in cases of size:Q, only encoding, no para with "encoded in" message
@@ -289,6 +307,9 @@ class Explanation():
                 result = newResult
             # Convert binary to int
             result = str(int(result, 2))
+
+            # EQUATION LOGIC HERE. if equation not None, use own stack method to calcuate what the true resutl should be
+
             # Manually add X or W - note also V for vector? - should add a more complex check as can have V or Vd
             # https://valsamaras.medium.com/arm-64-assembly-series-basic-definitions-and-registers-ec8cc1334e40#:~:text=The%20AArch64%20architecture%20also%20supports,(using%20b0%20to%20b31).
             # ^ gives all possible register prefixes
@@ -403,6 +424,10 @@ def splitWithBrackets(inputStr):
 
 if __name__ == "__main__":
     splitWithBrackets("imm5<4:3>:imm4<3>")
+    eq = Equation.Expression("x + 5 % 2", ["x"])
+    print(eq(5))
+    match = re.search("encoded as (.*)\.", "this is encoded as \"rx\" plus 2 times 5.")
+    print(match[1])
     # i1 = InstructionPage("arm-files/abs.xml")
     # instruction = "11011010110000000010001010010110"
     # print(i1.matchClass(instruction).matchEncoding(instruction).explanations[0].symbol)
