@@ -236,7 +236,7 @@ class Explanation():
             #self.encodedIn = root.find("account").attrib["encodedin"]
             # Uses https://stackoverflow.com/a/11122355 for getting quote indices
             encodingText = root.find("account").find("intro").find("para").text
-            if "encoded as" in encodingText:
+            if "encoded as" in encodingText and "vector" not in encodingText:
                 print(encodingText)
             quoteIndicies = [i for i, ltr in enumerate(encodingText) if ltr == "\""]
             # Further special case if no encoding - for not just assume it will always be zero - case fo the mova.. instructions for 128 bits
@@ -247,19 +247,19 @@ class Explanation():
 
             # Furthermore, for possible mathematical operations, grab all text between "encoded as" and "." if present
             match = re.search("encoded as (.*)\.", encodingText)
+            self.equation = None
             if match: # transform and save the resulting equation
                 # replace the symbol (in quotes), with the variable x
-                match = match.group(1)
-                match = re.sub("\".*\"", "x", match)
-                # replace mathematical words with symbols
-                match = match.replace("times", "*")
-                match = match.replace("plus", "+")
-                match = match.replace("modulo", "%")
-                match = match.replace("minus", "-")
-                # remove "field"
-                match = match.replace("field", "")
+                self.equation = re.sub("\".*\"", "x", match.group(1)).replace("field", "")
+                # # replace mathematical words with symbols
+                # match = match.replace("times", "*")
+                # match = match.replace("plus", "+")
+                # match = match.replace("modulo", "%")
+                # match = match.replace("minus", "-")
+                # # remove "field"
+                # match = match.replace("field", "")
                 # save equation
-                self.equation = match
+                #self.equation = match
 
             # REDUNDANT NOTES NEEDED IF TURNS OUT THAT THERE ARE CASES WHERE NO INTRO PRESENT FOR NON-TABLE EXPLANATIONS
             # slightly more complex, as in cases of size:Q, only encoding, no para with "encoded in" message
@@ -310,7 +310,10 @@ class Explanation():
             # Convert binary to int
             result = str(int(result, 2))
 
-            # EQUATION LOGIC HERE. if equation not None, use own stack method to calcuate what the true resutl should be
+            #if equation not None, use own stack method to calcuate what the true result should be
+            if self.equation is not None:
+                # Uses the result calculated to be the value of the encoded symbol
+                result = str(evaluateEquation(self.equation, result))
 
             # Manually add X or W - note also V for vector? - should add a more complex check as can have V or Vd
             # https://valsamaras.medium.com/arm-64-assembly-series-basic-definitions-and-registers-ec8cc1334e40#:~:text=The%20AArch64%20architecture%20also%20supports,(using%20b0%20to%20b31).
@@ -417,12 +420,38 @@ def splitWithBrackets(inputStr):
     splitList.append(inputStr[start:])
     return splitList
 
+# Helper method to evaluate equations of the form "x times 5 plus 2 modulo 3"
+def evaluateEquation(equation, x):
+    # Split by whitespace
+    equation = equation.split()
+    # Substitute x for the correct value
+    equation = [x if z == "x" else z for z in equation]
+    # Take every second value and place into an integer list
+    numbers = [int(x) for x in equation[::2]]
+    operations = equation[1::2]
+    print(numbers)
+    print(operations)
+    # For each operation, operate on the first two items of the list
+    for op in operations:
+        fst = numbers.pop(0)
+        snd = numbers.pop(0)
+        if op == "times":
+            result = fst * snd
+        elif op == "plus":
+            result = fst + snd
+        elif op == "minus":
+            result = fst - snd
+        elif op == "modulo":
+            result = fst % snd
+        numbers.insert(0, result)
+    return numbers[0]
+
+
 if __name__ == "__main__":
     splitWithBrackets("imm5<4:3>:imm4<3>")
-    eq = Equation.Expression("x + 5 % 2", ["x"])
-    print(eq(5))
     match = re.search("encoded as (.*)\.", "this is encoded as \"rx\" plus 2 times 5.")
     print(match[1])
+    print(evaluateEquation(re.sub("\".*\"", "x", "\"rx\" plus 5 minus 4").replace("field", ""), 8))
     # i1 = InstructionPage("arm-files/abs.xml")
     # instruction = "11011010110000000010001010010110"
     # print(i1.matchClass(instruction).matchEncoding(instruction).explanations[0].symbol)

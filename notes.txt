@@ -14,6 +14,10 @@ TODO:
   fmlsl_za_zzi for example.
   add checks to translate this into maths expression and perform these on the digits to get right decoding
   even has modulo!
+
+  https://developer.arm.com/documentation/ddi0602/2023-12/SIMD-FP-Instructions/ST3--single-structure---Store-single-3-element-structure-from-one-lane-of-three-registers-
+  THIS is an instructon with the equations that is not locked behind a FEAT!
+
 - proper alias treatment - LOOK INTO ALIASPREF section ininstruction page
 
 DONE:
