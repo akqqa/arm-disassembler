@@ -249,6 +249,7 @@ class Explanation():
             match = re.search("encoded as (.*)\.", encodingText)
             if match: # transform and save the resulting equation
                 # replace the symbol (in quotes), with the variable x
+                match = match.group(1)
                 match = re.sub("\".*\"", "x", match)
                 # replace mathematical words with symbols
                 match = match.replace("times", "*")
@@ -301,9 +302,10 @@ class Explanation():
                 indexes = indexes.split(":")
                 # Get each digit from result and concatenate to get new result
                 length = len(result)-1
+                normIndexes = [length - int(x) for x in indexes]
                 newResult = ""
-                for index in indexes:
-                    newResult += result[length - int(index)]
+                #slice using indicies
+                newResult = result[normIndexes[0]:normIndexes[1]+1]
                 result = newResult
             # Convert binary to int
             result = str(int(result, 2))
@@ -414,13 +416,6 @@ def splitWithBrackets(inputStr):
     # Finally add last substring to the list
     splitList.append(inputStr[start:])
     return splitList
-
-
-
-            
-
-
-# In an encoding, there will be boxes with var names and <c>s similar to in decoding - how is it different?
 
 if __name__ == "__main__":
     splitWithBrackets("imm5<4:3>:imm4<3>")

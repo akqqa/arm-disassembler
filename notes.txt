@@ -7,6 +7,7 @@ TODO:
 
   now, it splits correctly, just have to make it actually accound for the imm5<4:1> stuff properly now in and outside tables
 
+-imm5<4:1> MEANS TAKE THE BITS BETWEEN INCLUSIVE! NOT CONCATENATE!!
 - fix != in some cases
 - MANY of the explanations have plaintext such as "encoded as "Zn" times 2 plus 1" etc.
   occasionally with field before the times
