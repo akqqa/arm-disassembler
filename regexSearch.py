@@ -4,7 +4,7 @@ import re
 import os
 
 folder = sys.argv[1]
-regex = re.compile('encoded in "\w+&lt;\d') # must manually edit as entering in cmd line leads to errors with regex input!
+regex = re.compile('.*default.*') # must manually edit as entering in cmd line leads to errors with regex input!
 #'class="symbol">\w+&lt;\d'
 
 for file in os.listdir(folder):
@@ -13,3 +13,6 @@ for file in os.listdir(folder):
         matches = re.findall(regex, fstring)
         if len(matches) > 0:
             print("Found in file: " + file)
+            for match in matches:
+                print(match)
+                print("")

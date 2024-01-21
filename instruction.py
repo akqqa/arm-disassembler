@@ -101,6 +101,34 @@ class InstructionPage():
             symbols.append(exp.decodeSymbol(values))
         # Get asm, replace each symbol in the string with the binary value (for now)
         asm = encoding.asmTemplate
+
+        # Optional section removal / retaining
+        # If a bracketed section is found, and at least one of the symbols is non default, we keep this section
+        matches = re.search("\{.*\}", asm)
+        if matches:
+            keep = False
+            bracketed = matches.group(0)
+            if "<amount>" in bracketed:
+                # Check if there is an <amount> in the symbols, and if it is 0
+                for symbol in symbols:
+                    # Here we define various default values and if any are non default we keep the bracketed section
+                    # UPDATE FOR MORE NON-DEFAULT SYMBOLS TO BE FOUND
+                    if symbol[0] == "<amount>" and symbol[1] != "0":
+                        keep = True # Keep the brackets
+                    if symbol[0] == "<pimm>" and symbol[1] != "0":
+                        keep = True # Keep the brackets
+                    if symbol[0] == "<simm>" and symbol[1] != "0":
+                        keep = True # Keep the brackets
+                    if symbol[0] == "<imm>" and symbol[1] != "0":
+                        keep = True # Keep the brackets
+                    if symbol[0] == "<Xn>" and symbol[1] != "x30":
+                        keep = True # Keep the brackets
+            if not keep:
+                asm = re.sub("\{.*\}", "", asm)
+            else:
+                asm = asm.replace("{", "")
+                asm = asm.replace("}", "")
+
         for symbol in symbols:
             asm = asm.replace(symbol[0], symbol[1])
         return asm
@@ -236,8 +264,8 @@ class Explanation():
             #self.encodedIn = root.find("account").attrib["encodedin"]
             # Uses https://stackoverflow.com/a/11122355 for getting quote indices
             encodingText = root.find("account").find("intro").find("para").text
-            if "encoded as" in encodingText and "vector" not in encodingText:
-                print(encodingText)
+            # if "encoded as" in encodingText and "vector" not in encodingText:
+            #     print(encodingText)
             quoteIndicies = [i for i, ltr in enumerate(encodingText) if ltr == "\""]
             # Further special case if no encoding - for not just assume it will always be zero - case fo the mova.. instructions for 128 bits
             if len(quoteIndicies) != 2:
@@ -429,8 +457,6 @@ def evaluateEquation(equation, x):
     # Take every second value and place into an integer list
     numbers = [int(x) for x in equation[::2]]
     operations = equation[1::2]
-    print(numbers)
-    print(operations)
     # For each operation, operate on the first two items of the list
     for op in operations:
         fst = numbers.pop(0)
