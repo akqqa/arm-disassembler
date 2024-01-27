@@ -63,7 +63,8 @@ class EncodingTable():
                     mapping.append((tableVars[i], tds[i].text))
                 # If a file exists, set the mapping to the filename, otherwise encname
                 if "iformfile" in tr.attrib:
-                    #print(tr.attrib["iformfile"])
+                    # if tr.attrib["iformfile"] == "mov_umov_advsimd.xml":
+                    #     print(tr.attrib["iformfile"])
                     self.entries[tuple(mapping)] = InstructionPage("arm-files/" + tr.attrib["iformfile"])
                 else:
                     self.entries[tuple(mapping)] = tr.attrib["encname"]
@@ -164,7 +165,7 @@ class EncodingTable():
                     if matches:
                         return True # All characters in var and tup match so correctly matching
                 else:
-                    # Case with != at the start
+                    # Case with != at the start     # MUST CHANGE THIS AS CAN CONTAIN X'S
                     splitted = tup[1].split()
                     if var[1] != splitted[1]:
                         return True

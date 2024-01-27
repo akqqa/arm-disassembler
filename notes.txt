@@ -235,3 +235,25 @@ nope. try a simple parser instead. the implementation is ez lol u did it in pldi
 
 okayyy so Equation doesnt work as a lib cause it has good ordering.
 going to write my own function as a simple stack. push on each value, (space separated), and apply the following operation to it :)
+
+
+
+
+
+
+For aliases need to:
+read the aliases
+check against the representatio of symbols to binary substrings (in encoding i think), to match to potential aliases
+if match, decode instruction explicitly using the class file given
+
+using grep discovered that:
+alias conditions can be:
+!=
+==
+&&
+(x || y) ( less common though )
+Unconditionally
+Never
+AND symbols can be checked against other symbols values
+
+so must make aliasCondCheck more robust

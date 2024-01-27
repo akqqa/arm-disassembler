@@ -4,7 +4,7 @@ import re
 import os
 
 folder = sys.argv[1]
-regex = re.compile('.*default.*') # must manually edit as entering in cmd line leads to errors with regex input!
+regex = re.compile('!= x') # must manually edit as entering in cmd line leads to errors with regex input!
 #'class="symbol">\w+&lt;\d'
 
 for file in os.listdir(folder):

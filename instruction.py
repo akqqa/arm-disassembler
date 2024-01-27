@@ -2,8 +2,6 @@ from common import *
 import xml.etree.ElementTree as et
 import re
 import html
-#https://pypi.org/project/Equation/
-import Equation
 
 # Class for storing instruction info - based on each instructions' xml file
 # Due to nature of instructions, should have one class for the xml, then contains many objects that are classes iclass
@@ -44,9 +42,10 @@ import Equation
 class InstructionPage():
 
     def __init__(self, file):
+        self.file = file
         self.classes = []
         root = et.parse(file).getroot()
-        #Aliases - for now just store the alias xml element, can work on aliases later as less priority
+        #Aliases
         self.aliaslist = root.find("alias_list")
         #Class list
         classesSect = root.find("classes")
@@ -63,7 +62,7 @@ class InstructionPage():
                 self.encodings.append(e)
         explanations = root.find("explanations")
         for expXml in explanations:
-            print(file)
+            #print(file)
             # create explanation, search all subclasses and encodings for names, append to encodings with the right names
             explanation = Explanation(expXml)
             for e in self.encodings:
@@ -95,6 +94,25 @@ class InstructionPage():
         encoding = iClass.matchEncoding(instruction)
         # Get values from instructionencoding
         values = iClass.instructionEncoding.assignValues(instruction)
+        # CHECK AGAINST ALIASES - IF MATCH, CREATE INSTRUCTIONPAGE FOR THE ALIAS, THEN DISSASEMBLE THAT AND RETURN WHAT IT RETURNS
+        matchingAlias = None
+        if self.aliaslist is not None:
+            aliasrefs = self.aliaslist.findall("aliasref")
+            print(self.file)
+            for aliasref in aliasrefs:
+                aliasprefs = aliasref.findall("aliaspref")
+                if aliasprefs is not None:
+                    for aliaspref in aliasprefs:
+                        if aliaspref.text is not None:
+                            if aliasCondCheck(aliaspref.text, values):
+                                print("alias match!")
+                                matchingAlias = aliasref
+            # If any aliases match, create an instructionpage for the alias file, and disassemble that file and return that result
+            if matchingAlias is not None:
+                aliasClass = InstructionPage("arm-files/" + matchingAlias.attrib["aliasfile"])
+                return aliasClass.disassemble(instruction)
+
+
         symbols = []
         # Get symbols from feeding values to each explanation
         for exp in encoding.explanations:
@@ -108,7 +126,7 @@ class InstructionPage():
         if matches:
             keep = False
             bracketed = matches.group(0)
-            if "<amount>" in bracketed:
+            if "<amount>" in bracketed: #change this
                 # Check if there is an <amount> in the symbols, and if it is 0
                 for symbol in symbols:
                     # Here we define various default values and if any are non default we keep the bracketed section
@@ -471,6 +489,35 @@ def evaluateEquation(equation, x):
             result = fst % snd
         numbers.insert(0, result)
     return numbers[0]
+
+def aliasCondCheck(condition, values):
+    splitCond = condition.split(" ")
+    if len(splitCond) != 3:
+        return False
+    # Get the value of the correct symbol
+    for tup in values:
+        if tup[0] == splitCond[0]:
+            value = tup[1]
+            print(value)
+
+    # Based on the equality operator, compare and return true or false depending on matching
+    if splitCond[1] == "==":
+        result = compareWithXs(splitCond[2].strip("'"), value)
+        if result:
+            return True
+        else:
+            return False
+    elif splitCond[1] == "!=":
+        result = compareWithXs(splitCond[2].strip("'"), value)
+        if result:
+            return False
+        else:
+            return True
+    else: # Unfortunately, aliases can be more complex, which would require pseudocode parsing to perform. In this case we dont swap to the alias.
+        #print("ERROR")
+        #print(splitCond)
+        return False
+
 
 
 if __name__ == "__main__":
