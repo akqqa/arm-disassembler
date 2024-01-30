@@ -1,24 +1,7 @@
 TODO:
-- add special case in explanation decoding for imm5<4:1> to treat it as 4:1st digits of imm5 rather than just imm5<4 ++ 1>
-  ^ using regex search, all table entries seem to be normal without extra stuff such as imm5<4:1>:h:Rd etc.
-  extremely complex edge case: msr_imm and all related xmls. pseudocode is extremely complex and textual encodings rely on additional factors out of scope - simply cant really do this correctly at this current time
-  another edge case: rprfm_reg, where the pseudocode doesnt help and the xml description is very complex and impossible to parse! lots of cases! 
-  this is a limitation of the program therefore, BUT it does contain option<2>:option<0>:S:Rt<2:0> indicating this should be supported in case of other interactions
 
-  now, it splits correctly, just have to make it actually accound for the imm5<4:1> stuff properly now in and outside tables
-
--imm5<4:1> MEANS TAKE THE BITS BETWEEN INCLUSIVE! NOT CONCATENATE!!
 - fix != in some cases
-- MANY of the explanations have plaintext such as "encoded as "Zn" times 2 plus 1" etc.
-  occasionally with field before the times
-  fmlsl_za_zzi for example.
-  add checks to translate this into maths expression and perform these on the digits to get right decoding
-  even has modulo!
-
-  https://developer.arm.com/documentation/ddi0602/2023-12/SIMD-FP-Instructions/ST3--single-structure---Store-single-3-element-structure-from-one-lane-of-three-registers-
-  THIS is an instructon with the equations that is not locked behind a FEAT!
-
-- proper alias treatment - LOOK INTO ALIASPREF section ininstruction page
+- can be cases where no "" in paragraph or encodedin, in this case use symbol e.g lsl
 
 DONE:
 - add explanation to instructionpage class (?)
@@ -30,6 +13,25 @@ DONE:
   SO, once everything is made, the page can read explanations. for each it will serach through all encodings and add each explanations to the ones they match :)
   https://developer.arm.com/documentation/ddi0602/2023-09/Base-Instructions/AND--immediate---Bitwise-AND--immediate--?lang=en
   - see and_log_shift.xml for example of standard table - 1to1 mapping ebtwen var and value 
+- MANY of the explanations have plaintext such as "encoded as "Zn" times 2 plus 1" etc.
+  occasionally with field before the times
+  fmlsl_za_zzi for example.
+  add checks to translate this into maths expression and perform these on the digits to get right decoding
+  even has modulo!
+
+  https://developer.arm.com/documentation/ddi0602/2023-12/SIMD-FP-Instructions/ST3--single-structure---Store-single-3-element-structure-from-one-lane-of-three-registers-
+  THIS is an instructon with the equations that is not locked behind a FEAT!
+
+- proper alias treatment - LOOK INTO ALIASPREF section ininstruction page except FOR PS STUFF
+- add special case in explanation decoding for imm5<4:1> to treat it as 4:1st digits of imm5 rather than just imm5<4 ++ 1>
+  ^ using regex search, all table entries seem to be normal without extra stuff such as imm5<4:1>:h:Rd etc.
+  extremely complex edge case: msr_imm and all related xmls. pseudocode is extremely complex and textual encodings rely on additional factors out of scope - simply cant really do this correctly at this current time
+  another edge case: rprfm_reg, where the pseudocode doesnt help and the xml description is very complex and impossible to parse! lots of cases! 
+  this is a limitation of the program therefore, BUT it does contain option<2>:option<0>:S:Rt<2:0> indicating this should be supported in case of other interactions
+
+  now, it splits correctly, just have to make it actually accound for the imm5<4:1> stuff properly now in and outside tables
+
+-imm5<4:1> MEANS TAKE THE BITS BETWEEN INCLUSIVE! NOT CONCATENATE!!
 
 Example hand reverse disassembly:
 mul x4, x2, x5
@@ -257,3 +259,10 @@ Never
 AND symbols can be checked against other symbols values
 
 so must make aliasCondCheck more robust
+
+UNFORTUNATELY after doing all this, turns out there can be things like 011100 != 011111 && 011100 + 1 == 011101
+which kind of just screws everything Up
+THANKFULLY using grep we can see that there are literally only cases of +1. so we can simply onyl account for this sort of hardcoded
+
+in naive.bin, some constants are incorrect, e.g the lsls
+APPEARS TO BE BECAUSE THERE IS "" FOR ENCODEDIN, AND NONE IN THE PARAGRAPH, INSTEAD SHIFT IN SYMBOL SECTION

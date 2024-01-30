@@ -2,6 +2,7 @@ from common import *
 import xml.etree.ElementTree as et
 import re
 import html
+import boolean
 
 # Class for storing instruction info - based on each instructions' xml file
 # Due to nature of instructions, should have one class for the xml, then contains many objects that are classes iclass
@@ -98,15 +99,20 @@ class InstructionPage():
         matchingAlias = None
         if self.aliaslist is not None:
             aliasrefs = self.aliaslist.findall("aliasref")
-            print(self.file)
+            #print(self.file)
             for aliasref in aliasrefs:
                 aliasprefs = aliasref.findall("aliaspref")
                 if aliasprefs is not None:
                     for aliaspref in aliasprefs:
+                        # If aliaspref has an <a> tag, it is pseudocode, so skip
+                        anchor = aliaspref.find("a")
+                        if anchor is not None:
+                            continue
                         if aliaspref.text is not None:
                             if aliasCondCheck(aliaspref.text, values):
                                 print("alias match!")
                                 matchingAlias = aliasref
+                                break
             # If any aliases match, create an instructionpage for the alias file, and disassemble that file and return that result
             if matchingAlias is not None:
                 aliasClass = InstructionPage("arm-files/" + matchingAlias.attrib["aliasfile"])
@@ -490,32 +496,93 @@ def evaluateEquation(equation, x):
         numbers.insert(0, result)
     return numbers[0]
 
+# Given an alias pref string and the values of symbols, checks if the condition string is valid with the given symbols
+# Similar to the equation parsing but more complex as can have ==, !=, && and (||)
+# Likely can use a premade boolean logic library. extract all x == y or x != y, replace them with True or False, then evaluatte logically!
 def aliasCondCheck(condition, values):
-    splitCond = condition.split(" ")
-    if len(splitCond) != 3:
-        return False
-    # Get the value of the correct symbol
-    for tup in values:
-        if tup[0] == splitCond[0]:
-            value = tup[1]
-            print(value)
 
-    # Based on the equality operator, compare and return true or false depending on matching
-    if splitCond[1] == "==":
-        result = compareWithXs(splitCond[2].strip("'"), value)
+    condition = condition.replace("'", "")
+    condition = condition.replace("(", "( ")
+    condition = condition.replace(")", " )")
+
+    # Step 0: somehow detect if using pseudocode and dont evaluate if so, ignore these aliases
+    # Easy to detect! just check if the aliaspref contains an <a> tag inside, do this before the condcheck
+    
+    # Step 1: replace all symbols with their corresponding values
+    # Split by whitespace, to ensure doesnt replace part of substring with somthing. e,g a and Ra, could replace both a's
+    splitCond = condition.split(" ")
+    for i in range(0, len(splitCond)):
+        for tup in values:
+            if splitCond[i] == tup[0]:
+                #print("HI")
+                splitCond[i] = str(tup[1])
+    condition = " ".join(splitCond)
+
+    #print(condition)
+
+    # Now have a string of form 1 == 1 && 101 == 100
+
+    # Step 2: extract all x ==/!= y and evaluate each
+    # Step 2.5: replace each instance of those with T or F dependeing on evaluation
+
+    equalities = re.findall("[10x\\+ ]+ (?:==|!=) [10x\\+ ]+", condition)
+    #print(equalities)
+    for elem in equalities:
+        originalElem = elem
+        #print(originalElem)
+        # Additional handling of the rare + - grep ensured there are no instances of other operators!
+        addition = re.findall("[10]+ \\+ [10]+", elem)
+        for eq in addition:
+            # Each eq is of the form binary + binary
+            originalEq = eq
+            eqSplit = eq.split(" ")
+            eqSum = bin(int(eqSplit[0], 2) + int(eqSplit[2], 2))
+            eqSum = eqSum.strip("0b")
+            # Add leading zeroes to match left sides length
+            numZeroes = max(len(eqSplit[0]), len(eqSplit[2]))
+            eqSum = eqSum.zfill(numZeroes)
+            # Replace "eq" in the original elem with eqSum
+            regex = eq.strip()
+            regex = "\\b" + regex + "\\b"
+            regex = regex.replace("+", "\\+")
+            elem = re.sub(regex, eqSum, elem)
+            #print(eqSum)
+
+
+        # Evaluate the equality
+        elem = elem.strip()
+        splitElem = elem.split(" ")
+        #print(splitElem)
+        comparison = compareWithXs(splitElem[2], splitElem[0])
+
+        if splitElem[1] == "==":
+            result = comparison
+        elif splitElem[1] == "!=":
+            result = not comparison  
+
         if result:
-            return True
+            result = "TRUE"
         else:
-            return False
-    elif splitCond[1] == "!=":
-        result = compareWithXs(splitCond[2].strip("'"), value)
-        if result:
-            return False
-        else:
-            return True
-    else: # Unfortunately, aliases can be more complex, which would require pseudocode parsing to perform. In this case we dont swap to the alias.
-        #print("ERROR")
-        #print(splitCond)
+            result = "FALSE"  
+        # Add \b before and after the elem to ensure replacements are accurate
+        regex = originalElem.strip()
+        regex = regex.replace("+", "\\+")
+        regex = "\\b" + regex + "\\b"
+        condition = re.sub(regex, result, condition)
+        
+    # Step 3: use a parser library to evaluate the restuling logical expression (might have to replace && with "and" and so on)
+
+    condition = condition.replace("&&", "and")
+    condition = condition.replace("||", "or")
+
+    #print("CONDITION:")
+    #print(condition)
+
+    evaluation = boolean.BooleanAlgebra().parse(condition).simplify()
+
+    if evaluation == boolean.BooleanAlgebra().TRUE:
+        return True
+    else:
         return False
 
 
@@ -529,3 +596,5 @@ if __name__ == "__main__":
     # instruction = "11011010110000000010001010010110"
     # print(i1.matchClass(instruction).matchEncoding(instruction).explanations[0].symbol)
     # print(i1.disassemble(instruction))
+    print(aliasCondCheck("S == '1' && Pn == '10x' && (S != '1' || Pn == '1xx')", (("S", 1), ("Pn", "101"), ("Pm", 100))))
+    print((boolean.BooleanAlgebra().parse("TRUE and TRUE AND ( FALSE or TRUE )")).simplify())
