@@ -96,7 +96,7 @@ class EncodingTable():
                 if "groupname" in node.attrib:
                     self.entries[tuple(mapping)] = EncodingTable(root, node)
                 elif "iclass" in node.attrib:
-                    iclass_sects = root.findall(".//iclass_sect")  # very inefficient, can cache for better performance
+                    iclass_sects = root.findall(".//iclass_sect")  # very inefficient, can cache for better performancegamb
                     found = False
                     for sect in iclass_sects:
                         if sect.attrib["id"] == node.attrib["iclass"]:

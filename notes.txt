@@ -2,6 +2,16 @@ TODO:
 
 - fix != in some cases
 - can be cases where no "" in paragraph or encodedin, in this case use symbol e.g lsl
+  This is actually just outside of the scope really. this occurs in aliases, when the value is described in the "is equivalent to text" with its own logic, very complex to add for things that only account for 26 / ~2000 = 0.013% of instructions
+  - mov's have "implicit value 0/1" etc! can hard code for this
+  - most others seem to be aliases with the out-of-scope parsing to figure out values
+  - casp: uses W(s+1) so takes the already known Ws from Rs and adds 1 to it, tricky to hard code for
+  - for st1q_za_p_rrr.xml, the xml just says "is the offset 0", whereas the html says "with implicit value 0". see if redownloading files changes this to match. if not falt of the spec as not machine readable enough
+ - bitmask immediate, if this is detected in the paragraph description, decode as a bitmask immediate, which is described here: https://kddnewton.com/2022/08/11/aarch64-bitmask-immediates.html
+- proper exit conditions
+- replace 31 with ZR or SP depending on instruction!
+- EVALUATION - a good comparison could be to https://binary.ninja/2021/04/05/groundup-aarch64.html
+
 
 DONE:
 - add explanation to instructionpage class (?)
@@ -266,3 +276,6 @@ THANKFULLY using grep we can see that there are literally only cases of +1. so w
 
 in naive.bin, some constants are incorrect, e.g the lsls
 APPEARS TO BE BECAUSE THERE IS "" FOR ENCODEDIN, AND NONE IN THE PARAGRAPH, INSTEAD SHIFT IN SYMBOL SECTION
+
+
+00010010000000000000010000100001
