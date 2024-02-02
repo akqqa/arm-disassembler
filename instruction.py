@@ -130,24 +130,31 @@ class InstructionPage():
         # If a bracketed section is found, and at least one of the symbols is non default, we keep this section
         matches = re.search("\{.*\}", asm)
         if matches:
-            keep = False
+            #print(matches.group(0))
+            defaultSymbols = 0
+            symbolsInBrackets = 0
             bracketed = matches.group(0)
-            if "<amount>" in bracketed: #change this
-                # Check if there is an <amount> in the symbols, and if it is 0
-                for symbol in symbols:
+            # Check if there is an <amount> in the symbols, and if it is 0
+            for symbol in symbols:
+                if symbol[0] in matches.group(0):
+                    symbolsInBrackets += 1
                     # Here we define various default values and if any are non default we keep the bracketed section
-                    # UPDATE FOR MORE NON-DEFAULT SYMBOLS TO BE FOUND
-                    if symbol[0] == "<amount>" and symbol[1] != "0":
-                        keep = True # Keep the brackets
-                    if symbol[0] == "<pimm>" and symbol[1] != "0":
-                        keep = True # Keep the brackets
-                    if symbol[0] == "<simm>" and symbol[1] != "0":
-                        keep = True # Keep the brackets
-                    if symbol[0] == "<imm>" and symbol[1] != "0":
-                        keep = True # Keep the brackets
-                    if symbol[0] == "<Xn>" and symbol[1] != "x30":
-                        keep = True # Keep the brackets
-            if not keep:
+                    # By default, show the extra info. if, however, it only these values, and they are all defaults, hide it
+                    if symbol[0] == "<amount>" and symbol[1] == "0":
+                        defaultSymbols += 1
+                    if symbol[0] == "<pimm>" and symbol[1] == "0":
+                        defaultSymbols += 1
+                    if symbol[0] == "<simm>" and symbol[1] == "0":
+                        defaultSymbols += 1
+                    if symbol[0] == "<imm>" and symbol[1] == "0":
+                        defaultSymbols += 1
+                    if symbol[0] == "<Xn>" and symbol[1] == "x30":
+                        defaultSymbols += 1
+                    if symbol[0] == "<Xt>" and symbol[1] == "x31":
+                        defaultSymbols += 1
+                    if symbol[0] == "<shift>":
+                        defaultSymbols += 1
+            if defaultSymbols == symbolsInBrackets:
                 asm = re.sub("\{.*\}", "", asm)
             else:
                 asm = asm.replace("{", "")

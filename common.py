@@ -40,3 +40,47 @@ def compareWithXs(fst, snd):
         else:
             return False
     return True
+
+# Takes a bitmask immediate as a string, and returns the value as a number
+def bitmaskImmediateDecoder(bitmask):
+    #Bitmask encoded as (N):imms:immr where imms and immr are 6 bits each, and N is 1
+    # Add N character if not included in bitmask
+    if len(bitmask) == 12:
+        bitmask = "0" + bitmask
+
+
+    # Using the table from https://dinfuehr.github.io/blog/encoding-of-immediate-values-on-aarch64/ to encode the bitmasks
+    # If N = 1, handle as a 64 bit element
+    patternBits = False
+    if bitmask[0] == "1":
+        patternBits = bitmask[1:7]
+    elif bitmask[0] == "0":
+        # Traverse imms bits until a 0 is found
+        for i in range(1, 6):
+            if bitmask[i] == "0":
+                patternBits = bitmask[i+1:7]
+                break
+    # Pattern stores one less than the number of consecutive 1's
+    consecutiveOnes = int(patternBits, 2) + 1
+
+    # Elementsize is found by 2^(patternBits length)
+    elementSize = pow(2, len(patternBits))
+
+    # Built the binary string, by creating consecutive 1's then padding it with 0's at the head until it is elementSize long
+    binaryString = "1"*consecutiveOnes
+    # Pad with zeroes
+    numZeroes = elementSize - consecutiveOnes
+    binaryString = "0"*numZeroes + binaryString
+
+    # Right rotate immr times
+    immr = bitmask[7:]
+    immr = int(immr, 2)
+    binaryString = rightRotateString(binaryString, immr)
+
+    return int(binaryString, 2)
+
+def rightRotateString(rotator, num):
+    # Rotate by getting the last num digits, removing them from one side, then adding them to the front
+    rightEnd = rotator[len(rotator)- num:]
+    rightStart = rotator[0:len(rotator) - num]
+    return rightEnd + rightStart
