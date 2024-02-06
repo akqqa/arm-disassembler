@@ -42,7 +42,7 @@ def compareWithXs(fst, snd):
     return True
 
 # Takes a bitmask immediate as a string, and returns the value as a number
-def bitmaskImmediateDecoder(bitmask):
+def decodeBitmaskImmediate(bitmask):
     #Bitmask encoded as (N):imms:immr where imms and immr are 6 bits each, and N is 1
     # Add N character if not included in bitmask
     if len(bitmask) == 12:
@@ -77,7 +77,7 @@ def bitmaskImmediateDecoder(bitmask):
     immr = int(immr, 2)
     binaryString = rightRotateString(binaryString, immr)
 
-    return int(binaryString, 2)
+    return binaryString
 
 def rightRotateString(rotator, num):
     # Rotate by getting the last num digits, removing them from one side, then adding them to the front

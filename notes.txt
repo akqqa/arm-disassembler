@@ -3,15 +3,14 @@ TODO:
 - fix != in some cases
 - can be cases where no "" in paragraph or encodedin, in this case use symbol e.g lsl
   This is actually just outside of the scope really. this occurs in aliases, when the value is described in the "is equivalent to text" with its own logic, very complex to add for things that only account for 26 / ~2000 = 0.013% of instructions
-  - mov's have "implicit value 0/1" etc! can hard code for this
-  - most others seem to be aliases with the out-of-scope parsing to figure out values
+  - most others seem to be aliases with the out-of-scope parsing to figure out values - NOTE: this isnt even easier with pseudocode! just bad documentation that can easily be made better if instead it says smth like "encoded in 31 minus imms"
   - casp: uses W(s+1) so takes the already known Ws from Rs and adds 1 to it, tricky to hard code for
   - for st1q_za_p_rrr.xml, the xml just says "is the offset 0", whereas the html says "with implicit value 0". see if redownloading files changes this to match. if not falt of the spec as not machine readable enough
- - bitmask immediate, if this is detected in the paragraph description, decode as a bitmask immediate, which is described here: https://kddnewton.com/2022/08/11/aarch64-bitmask-immediates.html
 - proper exit conditions
 - replace 31 with ZR or SP depending on instruction!
 - EVALUATION - a good comparison could be to https://binary.ninja/2021/04/05/groundup-aarch64.html
 
+- huh, pickling a stripped down encoding table that doesnt store methods ends up being the same size and time to unpickle? okay
 
 DONE:
 - add explanation to instructionpage class (?)
@@ -31,6 +30,8 @@ DONE:
 
   https://developer.arm.com/documentation/ddi0602/2023-12/SIMD-FP-Instructions/ST3--single-structure---Store-single-3-element-structure-from-one-lane-of-three-registers-
   THIS is an instructon with the equations that is not locked behind a FEAT!
+- mov's have "implicit value 0/1" etc! can hard code for this
+ - bitmask immediate, if this is detected in the paragraph description, decode as a bitmask immediate, which is described here: https://kddnewton.com/2022/08/11/aarch64-bitmask-immediates.html
 
 - proper alias treatment - LOOK INTO ALIASPREF section ininstruction page except FOR PS STUFF
 - add special case in explanation decoding for imm5<4:1> to treat it as 4:1st digits of imm5 rather than just imm5<4 ++ 1>
@@ -41,7 +42,11 @@ DONE:
 
   now, it splits correctly, just have to make it actually accound for the imm5<4:1> stuff properly now in and outside tables
 
+
+
 -imm5<4:1> MEANS TAKE THE BITS BETWEEN INCLUSIVE! NOT CONCATENATE!!
+
+
 
 Example hand reverse disassembly:
 mul x4, x2, x5

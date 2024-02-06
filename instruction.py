@@ -267,6 +267,8 @@ class Explanation():
         self.enclist = root.attrib["enclist"].replace(" ", "").split(",")
         self.symbol = root.find("symbol").text
         self.table = []
+        self.bitmaskImmediate = False
+        self.implicitValue = None
         # If no account, then is a table as uses definition instead
         if root.find("account") == None:
             # If the first col is size, and the last includes M:Rm, encodedIn is size:M:Rm
@@ -295,6 +297,14 @@ class Explanation():
             #self.encodedIn = root.find("account").attrib["encodedin"]
             # Uses https://stackoverflow.com/a/11122355 for getting quote indices
             encodingText = root.find("account").find("intro").find("para").text
+            # Check if bitmask immediate
+            if "bitmask immediate" in encodingText:
+                self.bitmaskImmediate = True
+            # Check if implicit value
+            implicit = re.search("implicit value (\d+)\.", encodingText)
+            if implicit is not None:
+                self.implicitValue = implicit.group(1)
+
             # if "encoded as" in encodingText and "vector" not in encodingText:
             #     print(encodingText)
             quoteIndicies = [i for i, ltr in enumerate(encodingText) if ltr == "\""]
@@ -310,15 +320,6 @@ class Explanation():
             if match: # transform and save the resulting equation
                 # replace the symbol (in quotes), with the variable x
                 self.equation = re.sub("\".*\"", "x", match.group(1)).replace("field", "")
-                # # replace mathematical words with symbols
-                # match = match.replace("times", "*")
-                # match = match.replace("plus", "+")
-                # match = match.replace("modulo", "%")
-                # match = match.replace("minus", "-")
-                # # remove "field"
-                # match = match.replace("field", "")
-                # save equation
-                #self.equation = match
 
             # REDUNDANT NOTES NEEDED IF TURNS OUT THAT THERE ARE CASES WHERE NO INTRO PRESENT FOR NON-TABLE EXPLANATIONS
             # slightly more complex, as in cases of size:Q, only encoding, no para with "encoded in" message
@@ -366,6 +367,11 @@ class Explanation():
                 #slice using indicies
                 newResult = result[normIndexes[0]:normIndexes[1]+1]
                 result = newResult
+
+            # Check if bitmask immediate, and if so decode the result as a bitmask immediate
+            if self.bitmaskImmediate:
+                result = decodeBitmaskImmediate(result)
+
             # Convert binary to int
             result = str(int(result, 2))
 
@@ -373,6 +379,10 @@ class Explanation():
             if self.equation is not None:
                 # Uses the result calculated to be the value of the encoded symbol
                 result = str(evaluateEquation(self.equation, result))
+            
+            # if implicit value was given, result is this
+            if self.implicitValue is not None:
+                result = implicitValue
 
             # Manually add X or W - note also V for vector? - should add a more complex check as can have V or Vd
             # https://valsamaras.medium.com/arm-64-assembly-series-basic-definitions-and-registers-ec8cc1334e40#:~:text=The%20AArch64%20architecture%20also%20supports,(using%20b0%20to%20b31).
