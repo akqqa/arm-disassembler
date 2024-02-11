@@ -5,6 +5,9 @@ import sys
 from common import *
 from instruction import *
 import pickle
+import elftools # pip install pyelftools
+from elftools.elf.elffile import ELFFile
+
 
 class EncodingTable():
 
@@ -172,29 +175,47 @@ class EncodingTable():
         return False        
     
     def disassemble(self, filename):
-        file = open(filename, "rb")
-        bs = file.read(4)
-        while (bs):
-            # reverse the array, for endianness
-            bs = bs[::-1]
-            # Convert to binary
-            bs = [bin(x) for x in bs]
-            # Remove the 0b's
-            bs = [x[2:] for x in bs]
-            # finally, pad with leading 0's
-            bs = [addLeadingZeroes(x) for x in bs]
-            # Add all bytes, then decode the instruction
-            instruction = "".join(bs)
-            print(instruction)
-            print(self.decode(instruction))
+        if (filename[-4:] == ".bin"):
+            file = open(filename, "rb")
             bs = file.read(4)
+            while (bs):
+                # reverse the array, for endianness
+                bs = bs[::-1]
+                # Convert to binary
+                bs = [bin(x) for x in bs]
+                # Remove the 0b's
+                bs = [x[2:] for x in bs]
+                # finally, pad with leading 0's
+                bs = [addLeadingZeroes(x) for x in bs]
+                # Add all bytes, then decode the instruction
+                instruction = "".join(bs)
+                print(self.decode(instruction))
+                bs = file.read(4)
+        elif (filename[-4:] == ".elf"):
+            # Will likely have to check whether the file is big or little endian
+            with open(filename, "rb") as f:
+                elfFile = ELFFile(f)
+                textSection = elfFile.get_section_by_name(".text")
+                data = textSection.data()
+                # Iterate over ever 4 bytes of the byte array to get each instruction and decode it
+                # Get the next 4 bytes of the data
+                for i in range(0, len(data), 4):
+                    instructionBytes = data[i:i+4]
+                    # reverse the array, for endianness
+                    instructionBytes = instructionBytes[::-1]
+                    # Convert to binary
+                    instructionBytes = [bin(x) for x in instructionBytes]
+                    # Remove the 0b's
+                    instructionBytes = [x[2:] for x in instructionBytes]
+                    # finally, pad with leading 0's
+                    instructionBytes = [addLeadingZeroes(x) for x in instructionBytes]
+                    # Add all bytes, then decode the instruction
+                    instruction = "".join(instructionBytes)
+                    print(self.decode(instruction))
 
 def addLeadingZeroes(num):
     leading = "0" * (8-len(num))
     return leading + num
-
-
-
 
 if __name__ == "__main__":
     file = open('data', 'rb')

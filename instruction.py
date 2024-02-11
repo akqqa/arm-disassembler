@@ -110,7 +110,7 @@ class InstructionPage():
                             continue
                         if aliaspref.text is not None:
                             if aliasCondCheck(aliaspref.text, values):
-                                print("alias match!")
+                                #print("alias match!")
                                 matchingAlias = aliasref
                                 break
             # If any aliases match, create an instructionpage for the alias file, and disassemble that file and return that result
@@ -382,7 +382,7 @@ class Explanation():
             
             # if implicit value was given, result is this
             if self.implicitValue is not None:
-                result = implicitValue
+                result = self.implicitValue
 
             # Manually add X or W - note also V for vector? - should add a more complex check as can have V or Vd
             # https://valsamaras.medium.com/arm-64-assembly-series-basic-definitions-and-registers-ec8cc1334e40#:~:text=The%20AArch64%20architecture%20also%20supports,(using%20b0%20to%20b31).
