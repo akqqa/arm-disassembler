@@ -162,7 +162,6 @@ class EncodingTable():
                 # Check if var[1] matches tup[1]
                 if tup[1] == None:
                     return True
-                print("NEXT")
                 # Check if each element matches. If a != is present, make sure the remainder of the string is not equal to the rest of it.
                 if "!=" in tup[1]:
                     splitEncoding = tup[1].replace(" ", "").split("!=")
