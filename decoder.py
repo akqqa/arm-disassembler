@@ -137,7 +137,7 @@ class EncodingTable():
             #print("variable values: " + str(values))
             matches = True
             for tup in row:
-                if not self.matchVar(values, tup):
+                if not self.matchVar(values, tup): # Checks if any of the values (variable values extracted from the instruction based on the encoding) match the number in the row tuple
                     matches = False
             if matches:
                 #print("matched!")
@@ -152,27 +152,32 @@ class EncodingTable():
         #print("none found")
         return None
 
+    # vars = all variables extracted from the endcoding
+    # tup = a single number
+    # This method finds if the variable with the same name as this tuple has the same values
     def matchVar(self, vars, tup):
+        # Check each var
         for var in vars:
             if var[0] == tup[0]:
                 # Check if var[1] matches tup[1]
                 if tup[1] == None:
                     return True
-                elif tup[1][0] != "!": # this wont catch all cases, see https://developer.arm.com/documentation/ddi0602/2023-09/Index-by-Encoding/SME-encodings?lang=en#mortlach_multi_indexed_3
-                    matches = True
-                    for i in range(0, len(var[1])):
-                        if var[1][i] == tup[1][i] or tup[1][i] == "x":
-                            continue
-                        else:
-                            matches = False
-                    if matches:
-                        return True # All characters in var and tup match so correctly matching
+                print("NEXT")
+                # Check if each element matches. If a != is present, make sure the remainder of the string is not equal to the rest of it.
+                if "!=" in tup[1]:
+                    splitEncoding = tup[1].replace(" ", "").split("!=")
+                    if len(splitEncoding[0]) == 0:
+                        return not compareWithXs(splitEncoding[1], var[1])
+                    else: # Compare the first and second halves, the first matching exactly, the second not matching exactly
+                        splitPoint = len(splitEncoding[0])
+                        firstHalf = var[1][:splitPoint]
+                        secondHalf = var[1][splitPoint:]
+                        # Return the first half of the encoding (before the !=) with the equivalent first half of the variable value, logically ANDed with the inverse of the second etc.
+                        return (compareWithXs(splitEncoding[0],firstHalf)) and (not (compareWithXs(splitEncoding[1], secondHalf)))
                 else:
-                    # Case with != at the start     # MUST CHANGE THIS AS CAN CONTAIN X'S
-                    splitted = tup[1].split()
-                    if var[1] != splitted[1]:
-                        return True
-        return False        
+                    # Compare the two strings
+                    return compareWithXs(tup[1], var[1])
+        return False
     
     def disassemble(self, filename):
         if (filename[-4:] == ".bin"):
@@ -220,6 +225,8 @@ def addLeadingZeroes(num):
 if __name__ == "__main__":
     file = open('data', 'rb')
     table = pickle.load(file)
+
+    print(table.matchVar((("hi", "00101"), ("no", "10101")), ("hi", "00 != 00x")))
 
     filename = input("Enter binary file to disassemble:\n")
     print("Assembly Code:")
