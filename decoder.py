@@ -193,7 +193,6 @@ class EncodingTable():
                 bs = [addLeadingZeroes(x) for x in bs]
                 # Add all bytes, then decode the instruction
                 instruction = "".join(bs)
-                print(self.decode(instruction))
                 bs = file.read(4)
         elif (filename[-4:] == ".elf"):
             # Will likely have to check whether the file is big or little endian

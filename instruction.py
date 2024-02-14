@@ -76,13 +76,14 @@ class InstructionPage():
             matches = True
             encoding = c.instructionDescription
             for i in range(0, len(encoding)):
+                #print(instString[i])
+                #print(encoding[i])
                 if instString[i] == encoding[i] or encoding[i] == "x":
                     continue
                 else:
                     matches = False
             if matches:
                 return c # Will return the correct class
-        return None
 
     def print(self):
         for c in self.classes:
@@ -96,28 +97,11 @@ class InstructionPage():
         # Get values from instructionencoding
         values = iClass.instructionEncoding.assignValues(instruction)
         # CHECK AGAINST ALIASES - IF MATCH, CREATE INSTRUCTIONPAGE FOR THE ALIAS, THEN DISSASEMBLE THAT AND RETURN WHAT IT RETURNS
-        matchingAlias = None
-        if self.aliaslist is not None:
-            aliasrefs = self.aliaslist.findall("aliasref")
-            #print(self.file)
-            for aliasref in aliasrefs:
-                aliasprefs = aliasref.findall("aliaspref")
-                if aliasprefs is not None:
-                    for aliaspref in aliasprefs:
-                        # If aliaspref has an <a> tag, it is pseudocode, so skip
-                        anchor = aliaspref.find("a")
-                        if anchor is not None:
-                            continue
-                        if aliaspref.text is not None:
-                            if aliasCondCheck(aliaspref.text, values):
-                                #print("alias match!")
-                                matchingAlias = aliasref
-                                break
-            # If any aliases match, create an instructionpage for the alias file, and disassemble that file and return that result
-            if matchingAlias is not None:
-                aliasClass = InstructionPage("arm-files/" + matchingAlias.attrib["aliasfile"])
-                return aliasClass.disassemble(instruction)
-
+        matchingAlias = self.matchAlias(values)
+        # If any aliases match, create an instructionpage for the alias file, and disassemble that file and return that result
+        if matchingAlias is not None:
+            aliasClass = InstructionPage("arm-files/" + matchingAlias.attrib["aliasfile"])
+            return aliasClass.disassemble(instruction)
 
         symbols = []
         # Get symbols from feeding values to each explanation
@@ -163,6 +147,23 @@ class InstructionPage():
         for symbol in symbols:
             asm = asm.replace(symbol[0], symbol[1])
         return asm
+
+    def matchAlias(self, values):
+        if self.aliaslist is not None:
+            aliasrefs = self.aliaslist.findall("aliasref")
+            #print(self.file)
+            for aliasref in aliasrefs:
+                aliasprefs = aliasref.findall("aliaspref")
+                if aliasprefs is not None:
+                    for aliaspref in aliasprefs:
+                        # If aliaspref has an <a> tag, it is pseudocode, so skip
+                        anchor = aliaspref.find("a")
+                        if anchor is not None:
+                            continue
+                        if aliaspref.text is not None:
+                            if aliasCondCheck(aliaspref.text, values):
+                                #print("alias match!")
+                                return aliasref # originally this wasnt a separate func and was a break, but led to errors as matched multiple and matched the latest, so causes iclass not being found!
 
 
 
@@ -365,7 +366,10 @@ class Explanation():
                 normIndexes = [length - int(x) for x in indexes]
                 newResult = ""
                 #slice using indicies
-                newResult = result[normIndexes[0]:normIndexes[1]+1]
+                if (len(normIndexes) == 1): # Can be slice<1>. so must account for only being on index
+                    newResult = result[normIndexes[0]]
+                else:
+                    newResult = result[normIndexes[0]:normIndexes[1]+1]
                 result = newResult
 
             # Check if bitmask immediate, and if so decode the result as a bitmask immediate
@@ -405,6 +409,12 @@ class Explanation():
                     result = "h" + result
                 elif (self.symbol[1] == "B"):
                     result = "b" + result
+                elif (self.symbol[1] == "Z"):
+                    result = "z" + result
+                elif (self.symbol[1] == "C"):
+                    result = "c" + result
+                elif (self.symbol[1] == "P"):
+                    result = "p" + result
             return (self.symbol, result)
 
         # Search the stored table to find the mapping
@@ -421,15 +431,24 @@ class Explanation():
             matchingRow = None
             for row in self.table:
                 rowVars = row[:-1]
+                print(row)
+                print(matchList)
                 if (all([compareWithXs(fst, snd) for fst, snd in zip(rowVars, matchList)])): #zips rowVars and matchList, then compares each element accounting for xs to check if the lists match
                     matchingRow = row
             if matchingRow == None:
                 print("Error: could not match the table - invalid machine code given")
                 print(values)
-                quit()
+                return (self.symbol, "") # For now, just return it as empty. However, this occurs when https://developer.arm.com/documentation/ddi0602/2023-12/Base-Instructions/LDRB--register---Load-Register-Byte--register--?lang=en
+                # basically some encoding is used when option != 011, another when option == 011. This is jusut always doing the first, so error when it is 011 and nothing defined for it!
             # Once found, get the final result
             # NOTE FINAL RESULT COULD BE OF FORM IMM5<4:1> SO TAKE THIS INTO ACCOUNT TOO
-            result = matchingRow[-1]
+            # Intead of getting the last in the row, get the one that is actually the symbol - see arm-files/msr_imm.xml
+            # Get index of element in first row of table that contains < and >
+            index = 0
+            for i in range(0, len(self.table[0])):
+                if "<" in self.table[0][i] and ">" in self.table[0][i]:
+                    index = i
+            result = matchingRow[index]
             splitResult = splitWithBrackets(result) # This is the set of things to concatenate to get the result
             finalResult = ""
             for elem in splitResult: # Each elem is H, B, imm5 in H:B:imm5
@@ -446,6 +465,8 @@ class Explanation():
                         result = ""
                         for index in indexes:
                             result += val[0][length - int(index)]
+                    else:
+                        result = val[0]
                     finalResult += str(int(result, 2))
                 else:
                     finalResult += elem
