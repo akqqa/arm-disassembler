@@ -405,6 +405,7 @@ class Explanation():
             # https://valsamaras.medium.com/arm-64-assembly-series-basic-definitions-and-registers-ec8cc1334e40#:~:text=The%20AArch64%20architecture%20also%20supports,(using%20b0%20to%20b31).
             # ^ gives all possible register prefixes
             # maybe z as well?
+            print(self.symbol)
             if (len(self.symbol) > 1):
                 if (self.symbol[1] == "W"):
                     result = "w" + result
@@ -460,29 +461,54 @@ class Explanation():
                 if "<" in self.table[0][i] and ">" in self.table[0][i]:
                     index = i
             result = matchingRow[index]
-            splitResult = splitWithBrackets(result) # This is the set of things to concatenate to get the result
-            finalResult = ""
-            for elem in splitResult: # Each elem is H, B, imm5 in H:B:imm5
-                # Check if the element has <>
-                # For each element, check if it is a name in values, and replace with that, otherwise leave alone
-                val = [tup[1] for tup in values if tup[0] == elem.split("<", 1)[0]]
-                if len(val) != 0:
-                    if "<" in elem:
-                        indexes = elem.split("<",1)[1][:-1]
-                        # Split by colons
-                        indexes = indexes.split(":")
-                        # Get each digit from result and concatenate to get new result
-                        length = len(val[0])-1
-                        result = ""
-                        for index in indexes:
-                            result += val[0][length - int(index)]
-                    else:
-                        result = val[0]
-                    finalResult += str(int(result, 2))
-                else:
-                    finalResult += elem
+
+            # Handle things such as H<4:3>:imm4, 
+            if "UInt(" in result:
+                # Finds all UInt() sections in the asm, and handles their inner elements, replacing them with the final value
+                functions = re.finditer("UInt\\((.*)\\)", result)
+                # If none, just caclulateConcatSymbols normally, as can assume its across the whole element
+                for m in functions:
+                    replacement = calculateConcatSymbols(m.group(1), values)
+                    result = result.replace(m.group(0), replacement)
+            else: # Otherwise assumes the whole string is able to be split by colons
+                result = calculateConcatSymbols(result, values)
+
+            # CURRENT CAVEAT - SYMBOLS GIVEN BY TABLE CANNOT HAVE REGISTER PREFIX
+
             # split by colons, replace with values in values, then concat and return
-            return (self.symbol, finalResult)
+            return (self.symbol, result)
+
+# A technical improvement could be to only convert to integer if specified as UInt!!
+def calculateConcatSymbols(result, values):
+    splitResult = splitWithBrackets(result) # This is the set of things to concatenate to get the result
+    finalResult = ""
+    for elem in splitResult: # Each elem is H, B, imm5 in H:B:imm5
+        # Check if the element has <>
+        # For each element, check if it is a name in values, and replace with that, otherwise leave alone
+        val = [tup[1] for tup in values if tup[0] == elem.split("<", 1)[0]]
+        if len(val) != 0:
+            if "<" in elem:
+                indexes = elem.split("<",1)[1][:-1]
+                # Split by colons
+                indexes = indexes.split(":")
+                # Get each digit from result and concatenate to get new result
+                length = len(val[0])-1
+                result = ""
+                for index in indexes:
+                    result += val[0][length - int(index)]
+            else:
+                result = val[0]
+            finalResult += result
+        else:
+            finalResult += elem
+    # Sometimes '0' is used, so strip any ' symbols
+    finalResult = finalResult.replace("'", "")
+    # Convert to decimal if possible
+    try:
+        convertedResult = str(int(finalResult, 2))
+        return convertedResult
+    except ValueError:
+        return finalResult
 
 #Helper function to output the ASM template
 def getASM(asmelement):
@@ -566,7 +592,6 @@ def aliasCondCheck(condition, values):
     for i in range(0, len(splitCond)):
         for tup in values:
             if splitCond[i] == tup[0]:
-                #print("HI")
                 splitCond[i] = str(tup[1])
     condition = " ".join(splitCond)
 
@@ -640,7 +665,8 @@ def aliasCondCheck(condition, values):
 
 
 if __name__ == "__main__":
-    splitWithBrackets("imm5<4:3>:imm4<3>")
+    print(splitWithBrackets("imm5<4:3>:imm4<3>"))
+    print(calculateConcatSymbols("imm5<4:3>:imm4<3>", [("imm5", "111111"), ("imm4", "1111111")]))
     match = re.search("encoded as (.*)\.", "this is encoded as \"rx\" plus 2 times 5.")
     print(match[1])
     print(evaluateEquation(re.sub("\".*\"", "x", "\"rx\" plus 5 minus 4").replace("field", ""), 8))
