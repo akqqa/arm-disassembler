@@ -3,6 +3,7 @@ import xml.etree.ElementTree as et
 import re
 import html
 import boolean
+import sys
 
 # Class for storing instruction info - based on each instructions' xml file
 # Due to nature of instructions, should have one class for the xml, then contains many objects that are classes iclass
@@ -113,7 +114,6 @@ class InstructionPage():
 
         symbols = []
         # Get symbols from feeding values to each explanation
-        #if encoding is not None:
         for exp in encoding.explanations:
             symbols.append(exp.decodeSymbol(values))
         # Get asm, replace each symbol in the string with the binary value (for now)
@@ -446,8 +446,8 @@ class Explanation():
                 if (all([compareWithXs(fst, snd) for fst, snd in zip(rowVars, matchList)])): #zips rowVars and matchList, then compares each element accounting for xs to check if the lists match
                     matchingRow = row
             if matchingRow == None:
-                print("Error: could not match the table - invalid machine code given")
-                print(values)
+                print("Error: could not match the table - invalid machine code given", file=sys.stderr)
+                print(values, file=sys.stderr)
                 return (self.symbol, "") # For now, just return it as empty. However, this occurs when https://developer.arm.com/documentation/ddi0602/2023-12/Base-Instructions/LDRB--register---Load-Register-Byte--register--?lang=en
                 # basically some encoding is used when option != 011, another when option == 011. This is jusut always doing the first, so error when it is 011 and nothing defined for it!
             # Once found, get the final result

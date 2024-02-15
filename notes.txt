@@ -318,7 +318,7 @@ Around 2430 instructions total tested!
 3. or support - should pick one or the other with |. unsure how to pick which?
 4. fix up the encoding error - choose option and explanation based off the option in the header!
 5. mls insutrcitons have binary given at the end, should convert to decimal perhaps
-6. cpy_z_p_v_ instead of mov? understandable if alias cant match but why give this file name? index_z_rr_ and a bunch of others too!
+6. cpy_z_p_v_ instead of mov? understandable if alias cant match but why give this file name? index_z_rr_ and a bunch of others too! seems to be name of encoding / enclist
 7. lone SBs?
 8. STADDLB not having the symbols replaced!!! it is an alias but definitely has the explanations so unknown why they arent being replaced
     same with STCLRLBs and related ones

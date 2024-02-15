@@ -19,7 +19,7 @@ class EncodingTable():
     # instructionEncoding - the instruction encoding to map variables on incoming instructions
     # entries - the table, with keys being tuples of variable values to match, and values either being instructions or nested EncodingTables
     def __init__(self, root, hierarchy, sect=False):
-        self.directname = None # Used only in cases where an iclass_sect has no table and is just one instruction name
+        self.directFile = None # Used only in cases where an iclass_sect has no table and is just one instruction name
         # Handles regular tables and iclass_sects differently
         if sect:
             self.entries = {}
@@ -42,12 +42,14 @@ class EncodingTable():
             tableVars = []
             headers = instructiontable.find("thead").findall("tr")
 
-            # Special case if the table only has one row - just set a directname
+            # Special case if the table only has one row - just set a directFile
             if len(headers) == 1:
+                tr = instructiontable.find("tbody").find("tr")
                 # Go into tbody, go into first tr, then first td. This contains the iformid!
-                instr_name = instructiontable.find("tbody").find("tr").attrib["encname"]
-                #print("directname")
-                self.directname = instr_name
+                if "iformfile" in tr.attrib:
+                    self.directFile = InstructionPage("arm-files/" + tr.attrib["iformfile"])
+                else:
+                   self.directFile = tr.attrib["encname"]
                 return
             # Otherwise, get the tableVars in order by reading the text of headings2's
             ths = headers[1].findall("th") 
@@ -66,13 +68,9 @@ class EncodingTable():
                     mapping.append((tableVars[i], tds[i].text))
                 # If a file exists, set the mapping to the filename, otherwise encname
                 if "iformfile" in tr.attrib:
-                    # if tr.attrib["iformfile"] == "mov_umov_advsimd.xml":
-                    #     print(tr.attrib["iformfile"])
                     self.entries[tuple(mapping)] = InstructionPage("arm-files/" + tr.attrib["iformfile"])
                 else:
                     self.entries[tuple(mapping)] = tr.attrib["encname"]
-
-
         else:
             self.entries = {}
             variables = {}
@@ -123,24 +121,26 @@ class EncodingTable():
         # Extract variables from the instruction
         values = self.instructionEncoding.assignValues(instruction)
 
-        # If there is no table, just return the name of the instruction
-        if self.directname != None:
-            return self.directname
+        # If there is no table, handle special case and directly assign directFile
+        if self.directFile is not None:
+            if type(self.directFile) is EncodingTable:
+                return self.directFile.decode(instruction)
+            elif type(self.directFile) is InstructionPage:
+                # Return either name or the matched InstructionPage
+                return self.directFile.disassemble(instruction)
+            else:
+                return self.directFile
         
-        #print("entries")
-        #print(self.entries)
 
         # Rules: patterns match if 1's and 0's match exactly, or != applies
         # For each row of the encoding table, checks if each variable assignment of the row matches a variable in the instruction being matched
+        # Special case
         for row in self.entries.keys():
-            #print("row being checked: " + str(row))
-            #print("variable values: " + str(values))
             matches = True
             for tup in row:
                 if not self.matchVar(values, tup): # Checks if any of the values (variable values extracted from the instruction based on the encoding) match the number in the row tuple
                     matches = False
             if matches:
-                #print("matched!")
                 # This is the correct row
                 if type(self.entries[row]) is EncodingTable:
                     return self.entries[row].decode(instruction)
@@ -149,7 +149,6 @@ class EncodingTable():
                     return self.entries[row].disassemble(instruction)
                 else:
                     return self.entries[row]
-        #print("none found")
         return None
 
     # vars = all variables extracted from the endcoding
