@@ -313,13 +313,24 @@ as the table says LSL #12. should be put in. even tho curly braces its not the d
 sucessfully runs all decodings without any crashes!!!! now to note any errors observed in differences:
 
 Around 2430 instructions total tested!
-1. #uimm5 instead of replacing uimm5 with the number it equals for around 60 instructions (2%)
+--1. #uimm5 instead of replacing uimm5 with the number it equals for around 60 instructions (2%)
+    This occurs in cntb and others. reason: table has #uimm5 as a direct symbol to replace. usually, this would get replaced, but there is no definition of uimm5!!!! seems to be an error in the documentation
+    potentially just means the pattern in the left column?? that makes sense lol i might be dumb
 2. 64 - uint() etc. for 54 instructions (2%)
 3. or support - should pick one or the other with |. unsure how to pick which?
 4. fix up the encoding error - choose option and explanation based off the option in the header!
 5. mls insutrcitons have binary given at the end, should convert to decimal perhaps
-6. cpy_z_p_v_ instead of mov? understandable if alias cant match but why give this file name? index_z_rr_ and a bunch of others too! seems to be name of encoding / enclist
+~~6. cpy_z_p_v_ instead of mov? understandable if alias cant match but why give this file name? index_z_rr_ and a bunch of others too! seems to be name of encoding / enclist~~
 7. lone SBs?
-8. STADDLB not having the symbols replaced!!! it is an alias but definitely has the explanations so unknown why they arent being replaced
+~~8. STADDLB not having the symbols replaced!!! it is an alias but definitely has the explanations so unknown why they arent being replaced
     same with STCLRLBs and related ones
+    BECAUSE EXPLANATIONS ARE BEING ADDED TO STADDLB_LDADDB AND ITS MATCHING WITH STADDLB_LDADDLB
+    SEEMS TO BE FULLY AN ARM ERROR.SHOULD INCLUDE BOTH AS OTHER CASES LIKE THIS DO! BUT THIS DOESNT~~
 9. count UXTW #0 etc, as defaults to not be shown
+
+
+To fix 8, i updated to the latest arm documentation and it was fixed!
+unfortunately, new issues were created, such as the alias coniditons now having things such as op1 == '011' && CRm IN {'0xx1'} && op2 == '011'
+as a temporary fix, decided to simply ignore any conditions with IN in them.
+As a result, many more uints appeared!
+THIS IS A CRUCIAL THING TO TALK ABT IN REPORT!! CONFIRMS IT WORKS!!!!!!

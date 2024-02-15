@@ -110,6 +110,7 @@ class InstructionPage():
                     asm = aliasClass.disassemble(instruction)
                     return asm
                 except AttributeError:
+                    print("error")
                     continue
 
         symbols = []
@@ -548,10 +549,13 @@ def evaluateEquation(equation, x):
 # Similar to the equation parsing but more complex as can have ==, !=, && and (||)
 # Likely can use a premade boolean logic library. extract all x == y or x != y, replace them with True or False, then evaluatte logically!
 def aliasCondCheck(condition, values):
-
     condition = condition.replace("'", "")
     condition = condition.replace("(", "( ")
     condition = condition.replace(")", " )")
+
+    # With the latest version of the specification, the logic can now include IN statements. For now, these are unsupported as aliases
+    if "IN" in condition:
+        return False
 
     # Step 0: somehow detect if using pseudocode and dont evaluate if so, ignore these aliases
     # Easy to detect! just check if the aliaspref contains an <a> tag inside, do this before the condcheck
