@@ -97,14 +97,23 @@ class InstructionPage():
         # Get values from instructionencoding
         values = iClass.instructionEncoding.assignValues(instruction)
         # CHECK AGAINST ALIASES - IF MATCH, CREATE INSTRUCTIONPAGE FOR THE ALIAS, THEN DISSASEMBLE THAT AND RETURN WHAT IT RETURNS
-        matchingAlias = self.matchAlias(values)
+        matchingAliases = self.matchAlias(values)
         # If any aliases match, create an instructionpage for the alias file, and disassemble that file and return that result
-        if matchingAlias is not None:
-            aliasClass = InstructionPage("arm-files/" + matchingAlias.attrib["aliasfile"])
-            return aliasClass.disassemble(instruction)
+        # If there is an exception, try with the next alias in the list!
+        # If whole list traversed without success, simply dont replace with an alias
+        if len(matchingAliases) > 0:
+            # Tries to traverse list, returning asm for each one. Every error, try the next one. If all error, simply dont use alias
+            for matchingAlias in matchingAliases:
+                try:
+                    aliasClass = InstructionPage("arm-files/" + matchingAlias.attrib["aliasfile"])
+                    asm = aliasClass.disassemble(instruction)
+                    return asm
+                except AttributeError:
+                    continue
 
         symbols = []
         # Get symbols from feeding values to each explanation
+        #if encoding is not None:
         for exp in encoding.explanations:
             symbols.append(exp.decodeSymbol(values))
         # Get asm, replace each symbol in the string with the binary value (for now)
@@ -136,7 +145,7 @@ class InstructionPage():
                         defaultSymbols += 1
                     if symbol[0] == "<Xt>" and symbol[1] == "x31":
                         defaultSymbols += 1
-                    if symbol[0] == "<shift>":
+                    if symbol[0] == "<shift>" and (symbol[1] == "0" or symbol[1] == "LSL #0"):
                         defaultSymbols += 1
             if defaultSymbols == symbolsInBrackets:
                 asm = re.sub("\{.*\}", "", asm)
@@ -148,7 +157,9 @@ class InstructionPage():
             asm = asm.replace(symbol[0], symbol[1])
         return asm
 
+    # Given the tuple of values ((name, value),...), return a list of all matching aliases
     def matchAlias(self, values):
+        aliases = []
         if self.aliaslist is not None:
             aliasrefs = self.aliaslist.findall("aliasref")
             #print(self.file)
@@ -162,8 +173,8 @@ class InstructionPage():
                             continue
                         if aliaspref.text is not None:
                             if aliasCondCheck(aliaspref.text, values):
-                                #print("alias match!")
-                                return aliasref # originally this wasnt a separate func and was a break, but led to errors as matched multiple and matched the latest, so causes iclass not being found!
+                                aliases.append(aliasref) 
+        return aliases
 
 
 
@@ -222,6 +233,7 @@ class InstructionClass():
                     continue
                 else:
                     matches = False
+                    break
             if matches:
                 return e # Will return the correct encoding
         return None
@@ -431,8 +443,6 @@ class Explanation():
             matchingRow = None
             for row in self.table:
                 rowVars = row[:-1]
-                print(row)
-                print(matchList)
                 if (all([compareWithXs(fst, snd) for fst, snd in zip(rowVars, matchList)])): #zips rowVars and matchList, then compares each element accounting for xs to check if the lists match
                     matchingRow = row
             if matchingRow == None:

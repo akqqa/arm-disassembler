@@ -1,6 +1,7 @@
 TODO:
 
-- fix != in some cases
+- BUGFIX based on allTest.s! its perfect it shows you every single bug. currently look into ldrb_reg.xml and why it isnt being matched!
+- BUG: defining which asm template to use based on value of certain variables e.g https://developer.arm.com/documentation/ddi0602/2023-12/Base-Instructions/LDRB--register---Load-Register-Byte--register--?lang=en
 - can be cases where no "" in paragraph or encodedin, in this case use symbol e.g lsl
   This is actually just outside of the scope really. this occurs in aliases, when the value is described in the "is equivalent to text" with its own logic, very complex to add for things that only account for 26 / ~2000 = 0.013% of instructions
   - most others seem to be aliases with the out-of-scope parsing to figure out values - NOTE: this isnt even easier with pseudocode! just bad documentation that can easily be made better if instead it says smth like "encoded in 31 minus imms"
@@ -11,6 +12,8 @@ TODO:
 - EVALUATION - a good comparison could be to https://binary.ninja/2021/04/05/groundup-aarch64.html
 
 - huh, pickling a stripped down encoding table that doesnt store methods ends up being the same size and time to unpickle? okay
+
+strangely objdump isnt working? mine is? weird
 
 DONE:
 - add explanation to instructionpage class (?)
@@ -284,3 +287,39 @@ APPEARS TO BE BECAUSE THERE IS "" FOR ENCODEDIN, AND NONE IN THE PARAGRAPH, INST
 
 
 00010010000000000000010000100001
+
+
+
+Using allInstructions has allowed me to iron out bugs in my code!
+1st: matchAlias being created due to the break not taking out of the larger loop, resulting in matching the wrong alias
+2nd: tables assuming the last entry will be the result, when sometimes can be features instead
+3rd: found out that smth like slice<1> can exist not just slice<5:1> so supported this in newResult = result[normIndexes[0]:normIndexes[1]+1]
+
+4th:With asm encodings, sometimes it says no match when there is.this occurs when https://developer.arm.com/documentation/ddi0602/2023-12/Base-Instructions/LDRB--register---Load-Register-Byte--register--?lang=en
+    basically some encoding is used when option != 011, another when option == 011. This is jusut always doing the first, so error when it is 011 and nothing defined for it!
+    for now, just made it not quit the program. to make more accurate make it check which encoding to use!!
+
+5th: some instructions dont have any encodings? look into this as ran out of time - sxtw	x16, w15
+OMFG. THE ISSUE IS OCCURING BECAUSE THE ALIAS CONDITIONS FOR SBFM ARE OUT OF ORDER - IMMR = AND IMMS = HAS A HIGHER PRESEDENCE OVER IMMS =!!! JUST AWFULLY FORMATTED! WOW
+TO FIX: rewrite so aliasMatch returns a list of all possible aliases, and then it goes thru each one and if error, just try next!!!
+
+various occurances of things like (128-UInt(immhimmb)) instead of immediates. more out of scope rather than bug
+if plenty of time can add logic for it but its only for specific cases - basically certain vector operations maybe a few dozen
+
+ADD  w14, w4, #3206
+should be ADD  w14, w4, #3206, LSL #12
+as the table says LSL #12. should be put in. even tho curly braces its not the default!
+
+sucessfully runs all decodings without any crashes!!!! now to note any errors observed in differences:
+
+Around 2430 instructions total tested!
+1. #uimm5 instead of replacing uimm5 with the number it equals for around 60 instructions (2%)
+2. 64 - uint() etc. for 54 instructions (2%)
+3. or support - should pick one or the other with |. unsure how to pick which?
+4. fix up the encoding error - choose option and explanation based off the option in the header!
+5. mls insutrcitons have binary given at the end, should convert to decimal perhaps
+6. cpy_z_p_v_ instead of mov? understandable if alias cant match but why give this file name? index_z_rr_ and a bunch of others too!
+7. lone SBs?
+8. STADDLB not having the symbols replaced!!! it is an alias but definitely has the explanations so unknown why they arent being replaced
+    same with STCLRLBs and related ones
+9. count UXTW #0 etc, as defaults to not be shown
