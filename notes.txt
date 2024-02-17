@@ -320,6 +320,7 @@ Around 2430 instructions total tested!
     problem: i assumed that if a colon / colons appear, it will always be just that, so 32 - UInt(immh:immb) is split into [32 - UInt(immh, immb)] and then it isnt resolved correctly. hmpf
     hacky fix - check if (), if so, extract everything in the brackets, do them first, then replace. then do the rest
     see line 465 in instruction.py to continue this fix
+    FIXED - as well as further fix of the general decoding that i ddint see before. final improveemnt - make it actually subtract!
 3. or support - should pick one or the other with |. unsure how to pick which?
 4. fix up the encoding error - choose option and explanation based off the option in the header!
 5. mls insutrcitons have binary given at the end, should convert to decimal perhaps
@@ -331,6 +332,9 @@ Around 2430 instructions total tested!
     SEEMS TO BE FULLY AN ARM ERROR.SHOULD INCLUDE BOTH AS OTHER CASES LIKE THIS DO! BUT THIS DOESNT~~
 9. count UXTW #0 etc, as defaults to not be shown - LDR <Wt>, [<Xn|SP>, (<Wm>|<Xm>){, <extend> {<amount>}}] this complicates things a bit
 10. msr? should be a tag, instead is nothing
+11. LDRH  w22, [x12, #2254] - should be negative! signed not unsighned - how to tell? uimm vs imm/pimm?
+~~12. absent vs present - not in <>! can just be a number! rly annoying. potentially add a special case for {} and absent and present.~~
+  ^ also fixed various table expalnation amtches being incorrect!
 
 
 To fix 8, i updated to the latest arm documentation and it was fixed!

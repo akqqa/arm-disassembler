@@ -305,6 +305,12 @@ class Explanation():
                 for entry in entries:
                     currentRow.append(entry.text)
                 self.table.append(currentRow)
+            # Create a variable storing the index of the row that the results reside in (not always the last, as sometimes describes features)
+            self.tableResultIndex = -1
+            for i in range(0, len(headEntries)):
+                if headEntries[i].attrib["class"] == "symbol":
+                    self.tableResultIndex = i
+                    break # line 221 of msr_imm.xml has an error where architectural features should be class feature not symbol, but in any case, default to the first symbol
         else:
             # UNFORTUNATELY - as seen in umov_advsimd.xml under index, encodedin can give the wrong thing, in the case of e.g subindexing the endcoded in, as it is only given in para. must instead parse para for it when no table
             # luckily, this is just found by what is in the "" in the para
@@ -405,7 +411,6 @@ class Explanation():
             # https://valsamaras.medium.com/arm-64-assembly-series-basic-definitions-and-registers-ec8cc1334e40#:~:text=The%20AArch64%20architecture%20also%20supports,(using%20b0%20to%20b31).
             # ^ gives all possible register prefixes
             # maybe z as well?
-            print(self.symbol)
             if (len(self.symbol) > 1):
                 if (self.symbol[1] == "W"):
                     result = "w" + result
@@ -454,13 +459,10 @@ class Explanation():
                 # basically some encoding is used when option != 011, another when option == 011. This is jusut always doing the first, so error when it is 011 and nothing defined for it!
             # Once found, get the final result
             # NOTE FINAL RESULT COULD BE OF FORM IMM5<4:1> SO TAKE THIS INTO ACCOUNT TOO
+
             # Intead of getting the last in the row, get the one that is actually the symbol - see arm-files/msr_imm.xml
-            # Get index of element in first row of table that contains < and >
-            index = 0
-            for i in range(0, len(self.table[0])):
-                if "<" in self.table[0][i] and ">" in self.table[0][i]:
-                    index = i
-            result = matchingRow[index]
+            # Result is stored in the nth element, where n is the tableResultIndex constructed when the table was built
+            result = matchingRow[self.tableResultIndex]
 
             # Handle things such as H<4:3>:imm4, 
             if "UInt(" in result:
@@ -472,6 +474,12 @@ class Explanation():
                     result = result.replace(m.group(0), replacement)
             else: # Otherwise assumes the whole string is able to be split by colons
                 result = calculateConcatSymbols(result, values)
+
+            # Handle special case of [absent] and [present]
+            if result == "[absent]":
+                result = ""
+            elif result == "[present]":
+                result = self.symbol
 
             # CURRENT CAVEAT - SYMBOLS GIVEN BY TABLE CANNOT HAVE REGISTER PREFIX
 

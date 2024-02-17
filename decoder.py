@@ -12,17 +12,18 @@ from elftools.elf.elffile import ELFFile
 class EncodingTable():
 
     # Entries - a mapping of the variable values to either an instruction name or nested encoding table - effectively a node of the decode tree
-    # Key: a flatted map of variable names to the matching pattern
+    # Key: a flattened map of variable names to the matching pattern
     # Value: either an instruction name or a further encodingtable
 
     # Initialises with xml, which starts at the root node of the encoding table that will be converted to this class
     # instructionEncoding - the instruction encoding to map variables on incoming instructions
     # entries - the table, with keys being tuples of variable values to match, and values either being instructions or nested EncodingTables
     def __init__(self, root, hierarchy, sect=False):
+        self.entries = {}
+        self.instructionEncoding = None
         self.directFile = None # Used only in cases where an iclass_sect has no table and is just one instruction name
         # Handles regular tables and iclass_sects differently
         if sect:
-            self.entries = {}
             variables = {}
             # Use the regdiagram to create instructionencoding for this table
             regdiagram = hierarchy.find("regdiagram")
@@ -72,7 +73,6 @@ class EncodingTable():
                 else:
                     self.entries[tuple(mapping)] = tr.attrib["encname"]
         else:
-            self.entries = {}
             variables = {}
             # Use regdiagram to create the isntructionencoding for this table
             regdiagram = hierarchy.find("regdiagram")
@@ -134,9 +134,9 @@ class EncodingTable():
 
         # Rules: patterns match if 1's and 0's match exactly, or != applies
         # For each row of the encoding table, checks if each variable assignment of the row matches a variable in the instruction being matched
-        # Special case
         for row in self.entries.keys():
             matches = True
+            # Check if every variable in the instruction matches an instructon in the table entry
             for tup in row:
                 if not self.matchVar(values, tup): # Checks if any of the values (variable values extracted from the instruction based on the encoding) match the number in the row tuple
                     matches = False
@@ -220,12 +220,14 @@ def addLeadingZeroes(num):
     return leading + num
 
 if __name__ == "__main__":
+    if (len(sys.argv) != 2):
+        print("Incorrect number of arguments")
+        print("Format: python decoder.py <path_to_file>")
+        quit()
+
     file = open('data', 'rb')
     table = pickle.load(file)
+    #print(table.matchVar((("hi", "00101"), ("no", "10101")), ("hi", "00 != 00x")))
 
-    print(table.matchVar((("hi", "00101"), ("no", "10101")), ("hi", "00 != 00x")))
-
-    filename = input("Enter binary file to disassemble:\n")
-    print("Assembly Code:")
-    table.disassemble(filename)
+    table.disassemble(sys.argv[1])
 
