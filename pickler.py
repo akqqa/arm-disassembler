@@ -1,5 +1,5 @@
 # Saves the instruction data to a file for quick deserialization
-from encodingTable import *
+from decoder import *
 import pickle
 
 if __name__ == "__main__":
