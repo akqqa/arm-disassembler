@@ -205,8 +205,8 @@ class Explanation():
                 for m in functions:
                     replacement = calculateConcatSymbols(m.group(1), values)
                     result = result.replace(m.group(0), replacement)
-            else: # Otherwise assumes the whole string is able to be split by colons
-                result = calculateConcatSymbols(result, values)
+           # else: # Otherwise assumes the whole string is able to be split by colons
+                #result = calculateConcatSymbols(result, values)
 
             # Handle special case of [absent] and [present]
             if result == "[absent]":

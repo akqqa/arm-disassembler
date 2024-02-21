@@ -316,7 +316,7 @@ Around 2430 instructions total tested!
 --1. #uimm5 instead of replacing uimm5 with the number it equals for around 60 instructions (2%)
     This occurs in cntb and others. reason: table has #uimm5 as a direct symbol to replace. usually, this would get replaced, but there is no definition of uimm5!!!! seems to be an error in the documentation
     potentially just means the pattern in the left column?? that makes sense lol i might be dumb
-2. 64 - uint() etc. for 54 instructions (2%)
+~~2. 64 - uint() etc. for 54 instructions (2%)
     problem: i assumed that if a colon / colons appear, it will always be just that, so 32 - UInt(immh:immb) is split into [32 - UInt(immh, immb)] and then it isnt resolved correctly. hmpf
     hacky fix - check if (), if so, extract everything in the brackets, do them first, then replace. then do the rest
     see line 465 in instruction.py to continue this fix
@@ -331,7 +331,10 @@ Around 2430 instructions total tested!
     BECAUSE EXPLANATIONS ARE BEING ADDED TO STADDLB_LDADDB AND ITS MATCHING WITH STADDLB_LDADDLB
     SEEMS TO BE FULLY AN ARM ERROR.SHOULD INCLUDE BOTH AS OTHER CASES LIKE THIS DO! BUT THIS DOESNT~~
 9. count UXTW #0 etc, as defaults to not be shown - LDR <Wt>, [<Xn|SP>, (<Wm>|<Xm>){, <extend> {<amount>}}] this complicates things a bit
-10. msr? should be a tag, instead is nothing
+--10. msr? should be a tag, instead is nothing
+  ^ THIS IS DUE TO INCORRECT ORDER OF VARS TO TABLE VARS. SHOULD MAKE MORE ROBUST
+    ^ ACTUALLY, i think its due to it being a custom label so not in the table!
+    OHH cause it should be aliased but isnt so nothing is defined for it!!!
 11. LDRH  w22, [x12, #2254] - should be negative! signed not unsighned - how to tell? uimm vs imm/pimm?
 ~~12. absent vs present - not in <>! can just be a number! rly annoying. potentially add a special case for {} and absent and present.~~
   ^ also fixed various table expalnation amtches being incorrect!
@@ -342,3 +345,11 @@ unfortunately, new issues were created, such as the alias coniditons now having 
 as a temporary fix, decided to simply ignore any conditions with IN in them.
 As a result, many more uints appeared!
 THIS IS A CRUCIAL THING TO TALK ABT IN REPORT!! CONFIRMS IT WORKS!!!!!!
+
+
+consider uints. are they always used. tables only? etc.
+
+
+CODE IMPROVEMENTS
+each class has own file
+separate file for running the actual dissasembler vs using decoder.py to run the whole thing!
