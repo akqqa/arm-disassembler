@@ -357,6 +357,9 @@ class Explanation():
 
     # Values is a tuple of tuples ((imm, 01001), (Rn, 1101), ...)
     # Returns a tuple - (the symbol the value has been found for, and the resulting value)
+
+    # explanation on calculateconcat vs splitwithbrackets. if not in a table, never uses uint as it is implied to be converted to numbers always. therefore can just straight split based on colons
+    # however, tables use both alphanumeric values AND unit conversions depending on the table values, so this uses splitwithbrackets
     def decodeSymbol(self, values):
         # special case for mova on 128 bits, return 0 for an encoding of ""
         if self.encodedIn == "":
@@ -376,27 +379,28 @@ class Explanation():
         # If no table, simply find the variable the symbol is encoded in, and return this (taking into account indexing with <> after symbol)
         if self.table == []:
             result = ""
-            for sym in encodedList:
-                # Remove anything after < as this is ignored to match the possible symbols - https://stackoverflow.com/a/904756
-                symStrip = sym.split("<", 1)[0]
-                for tup in values:
-                    if tup[0] == symStrip:
-                        result += tup[1]
-            # If has indices for parts of the binary, extract them and extract the correct ones from result
-            if "<" in sym:
-                indexes = sym.split("<",1)[1][:-1]
-                # Split by colons
-                indexes = indexes.split(":")
-                # Get each digit from result and concatenate to get new result
-                length = len(result)-1
-                normIndexes = [length - int(x) for x in indexes]
-                newResult = ""
-                #slice using indicies
-                if (len(normIndexes) == 1): # Can be slice<1>. so must account for only being on index
-                    newResult = result[normIndexes[0]]
-                else:
-                    newResult = result[normIndexes[0]:normIndexes[1]+1]
-                result = newResult
+            result = calculateConcatSymbols(self.encodedIn, values) # THIS DOES THE SAME AS BELOW BUT BETTER!
+            # for sym in encodedList:
+            #     # Remove anything after < as this is ignored to match the possible symbols - https://stackoverflow.com/a/904756
+            #     symStrip = sym.split("<", 1)[0]
+            #     for tup in values:
+            #         if tup[0] == symStrip:
+            #             result += tup[1]
+            # # If has indices for parts of the binary, extract them and extract the correct ones from result
+            # if "<" in sym:
+            #     indexes = sym.split("<",1)[1][:-1]
+            #     # Split by colons
+            #     indexes = indexes.split(":")
+            #     # Get each digit from result and concatenate to get new result
+            #     length = len(result)-1
+            #     normIndexes = [length - int(x) for x in indexes]
+            #     newResult = ""
+            #     #slice using indicies
+            #     if (len(normIndexes) == 1): # Can be slice<1>. so must account for only being on index
+            #         newResult = result[normIndexes[0]]
+            #     else:
+            #         newResult = result[normIndexes[0]:normIndexes[1]+1]
+            #     result = newResult
 
             # Check if bitmask immediate, and if so decode the result as a bitmask immediate
             if self.bitmaskImmediate:
@@ -471,15 +475,17 @@ class Explanation():
             # Result is stored in the nth element, where n is the tableResultIndex constructed when the table was built
             result = matchingRow[self.tableResultIndex]
 
-            # Handle things such as H<4:3>:imm4, 
+            # Handle things such as H<4:3>:imm4. Unlike in non-table, sometimes doesnt convert to integers
             if "UInt(" in result:
                 # Finds all UInt() sections in the asm, and handles their inner elements, replacing them with the final value
                 functions = re.finditer("UInt\\((.*)\\)", result)
                 # If none, just caclulateConcatSymbols normally, as can assume its across the whole element
                 for m in functions:
-                    replacement = calculateConcatSymbols(m.group(1), values)
+                    replacement = calculateConcatSymbols(m.group(1), values) # ONLY DOES THIS IN TABLE AS IN NON-TABLE IT ALWAYS JUST TREATS IT AS separated by brackets. this assumes that 
+                    # Convert to decimal if possible
+                    replacement = str(int(replacement, 2))
                     result = result.replace(m.group(0), replacement)
-           # else: # Otherwise assumes the whole string is able to be split by colons
+            #else: # Otherwise assumes the whole string is able to be split by colons - IF DOES THIS, ERROR WHEN USING A SYMBOL THAT ISNT CONVERTED TO ITS INT LIKE 1 AND H
                 #result = calculateConcatSymbols(result, values)
 
             # Handle special case of [absent] and [present]

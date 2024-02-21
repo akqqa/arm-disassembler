@@ -103,11 +103,13 @@ def getASM(asmelement):
         output += child.text
     return output
 
-# A technical improvement could be to only convert to integer if specified as UInt!!
+# Claculates the resulting value of concatendated symbols - e.g H:B:imm5 should combine the bits!
+# Could perhaps improve / fix by making it only convert if uint is present? - ACTUALLY only ever called from a uint. assumes that these will only occur when a uint is used - otherwise doesnt make sense tbf
+# Returns the bits concatenated! USES SPLITWITHBRACKETS to ensure correct splitting with <> present. can later be converted to an integer as returns binary that has been concatenated
 def calculateConcatSymbols(result, values):
     splitResult = splitWithBrackets(result) # This is the set of things to concatenate to get the result
     finalResult = ""
-    for elem in splitResult: # Each elem is H, B, imm5 in H:B:imm5
+    for elem in splitResult: # Each elem is H, B, imm5 in H:B:imm5. can even include <>
         # Check if the element has <>
         # For each element, check if it is a name in values, and replace with that, otherwise leave alone
         val = [tup[1] for tup in values if tup[0] == elem.split("<", 1)[0]]
@@ -128,15 +130,11 @@ def calculateConcatSymbols(result, values):
             finalResult += elem
     # Sometimes '0' is used, so strip any ' symbols
     finalResult = finalResult.replace("'", "")
-    # Convert to decimal if possible
-    try:
-        convertedResult = str(int(finalResult, 2))
-        return convertedResult
-    except ValueError:
-        return finalResult
+    return finalResult
 
 # Helper function to split a string by colons, not including any colons inside &lt/&rt (</>)
 # e.g imm5<4:3>:imm4<3> = [imm5<4:3>, imm4<3>]
+# Returns the symbols divided by brackets
 def splitWithBrackets(inputStr):
     # using https://stackoverflow.com/a/15599760
     # All < must have an associated > to be well formed in the specification. Using this we can find the indices of each and only split on colons not between these
