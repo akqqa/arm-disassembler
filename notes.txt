@@ -372,6 +372,9 @@ Bugs to actually fix:
   UNFORTUNATELY STILL 6 REMAINING - SOME DUE TO LABELS THOUGH - SEE THE DIFFERENCE FROM MINEsIGNED TO MINEzn!
   PRFM ALSO DUE TO LABELS - all due to labels!!!! and in most cases there is an or!
   SO FIXED
-(|) 
-UXTW #0
 !uimm5! - FIXED :) but heavy assumptions
+
+!!(|) mostly fixed! still there but no longer 0 - also fixed much larger bug with many 0's!! 
+UXTW #0
+!TABLES NOT HAVING REGISTER PREFIXES - think this is actually honestly impossible. Va in non-table should have v prefix, but not when in table!!!
+  could just hard code the table ones - done!

@@ -315,6 +315,7 @@ class Explanation():
         self.implicitValue = None
         self.signed = False
         self.multipleOf = None
+        self.equation = None
         # If no account, then is a table as uses definition instead
         if root.find("account") == None:
             # If the first col is size, and the last includes M:Rm, encodedIn is size:M:Rm
@@ -368,8 +369,9 @@ class Explanation():
             #     print(encodingText)
             quoteIndicies = [i for i, ltr in enumerate(encodingText) if ltr == "\""]
             # Further special case if no encoding - for not just assume it will always be zero - case fo the mova.. instructions for 128 bits
+            # this was originally erroneously made to ignore encodedIn. possibly due to an issue with the xml formatting not sensing multiple " in text. preferred fallback is to the encodedin.
             if len(quoteIndicies) != 2:
-                self.encodedIn = ""
+                self.encodedIn = html.unescape(root.find("account").attrib["encodedin"])
                 return
             self.encodedIn = encodingText[quoteIndicies[0]+1:quoteIndicies[1]]
 
@@ -460,29 +462,12 @@ class Explanation():
             # https://valsamaras.medium.com/arm-64-assembly-series-basic-definitions-and-registers-ec8cc1334e40#:~:text=The%20AArch64%20architecture%20also%20supports,(using%20b0%20to%20b31).
             # ^ gives all possible register prefixes
             # maybe z as well?
-            if (len(self.symbol) > 1):
-                if (self.symbol[1] == "W"):
-                    result = "w" + result
-                elif (self.symbol[1] == "X"):
-                    result = "x" + result
-                elif (self.symbol[1] == "V"):
-                    result = "v" + result
-                elif (self.symbol[1] == "Q"):
-                    result = "q" + result
-                elif (self.symbol[1] == "D"):
-                    result = "d" + result
-                elif (self.symbol[1] == "S"):
-                    result = "s" + result
-                elif (self.symbol[1] == "H"):
-                    result = "h" + result
-                elif (self.symbol[1] == "B"):
-                    result = "b" + result
-                elif (self.symbol[1] == "Z"):
-                    result = "z" + result
-                elif (self.symbol[1] == "C"):
-                    result = "c" + result
-                elif (self.symbol[1] == "P"):
-                    result = "p" + result
+            # Originally simply assumed if starting with capital WXVQDSHBZCP would be a register prefix. using this, foudn the regex ([WXVQDSHBZCP]|PN)[nmdtasgv] by refining until the difference between it and the original were nonexistant
+            registerPrefixTest = re.search("([WXVQDSHBZCP]|PN)[nmdtasgv]", self.symbol)
+            if registerPrefixTest is not None:
+                # Add register prefix to result
+                result = registerPrefixTest.group(1).lower() + result
+
             return (self.symbol, result)
 
         # Search the stored table to find the mapping
@@ -551,7 +536,14 @@ class Explanation():
             if subtraction is not None:
                 result = str(int(subtraction.group(1)) - int(subtraction.group(2)))
 
-            # split by colons, replace with values in values, then concat and return
+            # Unfortunately not consistent with the non-table forms. e.g Va and Vb in SQRSHRN describe the prefix rather than require it!!
+            registerPrefixTest = re.search("([WXVQDSHBZCP]|PN)[nmdtasgv]", self.symbol)
+            if registerPrefixTest is not None:
+                if not ("Va" in self.symbol) and not ("Vb" in self.symbol): # These were the only two outliers found
+                    # Add register prefix to result
+                    result = registerPrefixTest.group(1).lower() + result
+                return (self.symbol, result)
+            
             return (self.symbol, result)
 
 if __name__ == "__main__":
