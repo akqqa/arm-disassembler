@@ -513,6 +513,11 @@ class Explanation():
 
             # CURRENT CAVEAT - SYMBOLS GIVEN BY TABLE CANNOT HAVE REGISTER PREFIX
 
+            # Handle potential subtraction (if form digits - digits perform the subtraction)
+            subtraction = re.match("(\d+) - (\d+)", result)
+            if subtraction is not None:
+                result = str(int(subtraction.group(1)) - int(subtraction.group(2)))
+
             # split by colons, replace with values in values, then concat and return
             return (self.symbol, result)
 

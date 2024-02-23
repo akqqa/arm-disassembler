@@ -362,8 +362,8 @@ OH! if a node, can be groupname or iclass. if groupname, contains more nodes. if
 
 Bugs to actually fix:
 
-imm/uimm - can do this by parsing the description for "signed immediate"
-OH - CAN SAY "A MULTIPLE OF X" AND THIS IMPLIES THE NUMBER IS MULTIPLIED BY X
+!imm/uimm - can do this by parsing the description for "signed immediate"
+!OH - CAN SAY "A MULTIPLE OF X" AND THIS IMPLIES THE NUMBER IS MULTIPLIED BY X
 st1 isnt showing the optional parts??
 subtraction for some immediates
 conditions for some isntructions e.g ,  ]
