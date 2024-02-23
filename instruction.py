@@ -362,8 +362,11 @@ class Explanation():
                 self.signed = True
             # Check if multiple of
             multiple = re.search("multiple of (\d+)", encodingText)
+            divide = re.search("\>/(\d+)", encodingText)
             if multiple is not None:
                 self.multipleOf = int(multiple.group(1))
+            elif divide is not None:
+                self.multipleOf = int(divide.group(1))
 
             # if "encoded as" in encodingText and "vector" not in encodingText:
             #     print(encodingText)
