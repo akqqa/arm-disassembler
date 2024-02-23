@@ -228,9 +228,31 @@ class InstructionClass():
 
     def matchEncoding(self, instString):
         # For each encoding, check if the encodingDescription matches the instString!
+        # Must account for ZNN strings
         for e in self.encodingSections:
             matches = True
             encoding = e.encodingDescription
+            # Extract all ZN strings alongside their starting indices in the string
+            znStrings = re.finditer("[ZN]+", encoding)
+            for match in znStrings:
+                # print("HELLO THERE")
+                # print(match.group())
+                znString = match.group()
+                startindex = match.start()
+                # print(len(znString))
+                # print(instString[startindex:startindex+len(znString)])
+                # Convert zs and ns to 1s and 0s
+                znString = znString.replace("Z", "0")
+                znString = znString.replace("N", "1")
+                # Check if the znString matches the substring from startindex to endindex. if so, this encoding is not correct
+                # print(znString)
+                # print(instString[startindex:startindex+len(znString)])
+                # print(compareWithXs(znString, instString[startindex:startindex+len(znString)]))
+                if compareWithXs(znString, instString[startindex:startindex+len(znString)]):
+                    matches = False # String wont match regardless of next part
+            # Replaces all z's and n's with x, as already exited if invalid
+            encoding = encoding.replace("Z", "x")
+            encoding = encoding.replace("N", "x")
             for i in range(0, len(encoding)):
                 if instString[i] == encoding[i] or encoding[i] == "x":
                     continue
@@ -265,6 +287,8 @@ class EncodingDetails():
                 characters = box.findall("c")
                 for char in characters:
                     if char.text == "0" or char.text == "1":
+                        encodingSection += char.text
+                    elif char.text == "Z" or char.text == "N":
                         encodingSection += char.text
                     else:
                         encodingSection += "x"
@@ -478,7 +502,8 @@ class Explanation():
                 if (all([compareWithXs(fst, snd) for fst, snd in zip(rowVars, matchList)])): #zips rowVars and matchList, then compares each element accounting for xs to check if the lists match
                     matchingRow = row
             if matchingRow == None:
-                print("Error: could not match the table - invalid machine code given", file=sys.stderr)
+                print(self.enclist,file=sys.stderr)
+                print("Error: could not match the table - invalid machine code given OR unknown label present", file=sys.stderr)
                 print(values, file=sys.stderr)
                 return (self.symbol, "") # For now, just return it as empty. However, this occurs when https://developer.arm.com/documentation/ddi0602/2023-12/Base-Instructions/LDRB--register---Load-Register-Byte--register--?lang=en
                 # basically some encoding is used when option != 011, another when option == 011. This is jusut always doing the first, so error when it is 011 and nothing defined for it!
@@ -488,6 +513,14 @@ class Explanation():
             # Intead of getting the last in the row, get the one that is actually the symbol - see arm-files/msr_imm.xml
             # Result is stored in the nth element, where n is the tableResultIndex constructed when the table was built
             result = matchingRow[self.tableResultIndex]
+
+            # Account for #uimm5 and #uimm4 referring to their own pattern
+            # Assumptions : always uimm4 or uimm5, and only has one other row in the table
+            # Not very robust, but since theres no documentation cant really tell what its meant to mean!
+            if "uimm5" in result:
+                result = result.replace("uimm5", str(int(calculateConcatSymbols(self.encodedIn, values),2)))
+            if "uimm4" in result:
+                result = result.replace("uimm4", str(int(calculateConcatSymbols(self.encodedIn, values),2)))
 
             # Handle things such as H<4:3>:imm4. Unlike in non-table, sometimes doesnt convert to integers
             if "UInt(" in result:

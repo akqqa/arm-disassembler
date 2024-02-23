@@ -338,7 +338,7 @@ Around 2430 instructions total tested!
 11. LDRH  w22, [x12, #2254] - should be negative! signed not unsighned - how to tell? uimm vs imm/pimm?
 ~~12. absent vs present - not in <>! can just be a number! rly annoying. potentially add a special case for {} and absent and present.~~
   ^ also fixed various table expalnation amtches being incorrect!
-
+13. off by one error in cntb MUL #xx. possibly due to it being in range 1-16 not 0-15? yeah. sorta out of scope. can see it clearly in the asl but not properly given in explanation text
 
 To fix 8, i updated to the latest arm documentation and it was fixed!
 unfortunately, new issues were created, such as the alias coniditons now having things such as op1 == '011' && CRm IN {'0xx1'} && op2 == '011'
@@ -364,8 +364,14 @@ Bugs to actually fix:
 
 !imm/uimm - can do this by parsing the description for "signed immediate"
 !OH - CAN SAY "A MULTIPLE OF X" AND THIS IMPLIES THE NUMBER IS MULTIPLIED BY X
-st1 isnt showing the optional parts??
-subtraction for some immediates
-conditions for some isntructions e.g ,  ]
+!subtraction for some immediates
+!conditions for some isntructions e.g ,  ]
+  APPEARS TO BE BECAUSE USES "ZNN instead of" != 011. so i guess if it uses Z or N it means not?"
+  thanks for being totally nonsense arm lmao
+  FIXED IT FOR 5 INSTRUCTIONS!
+  UNFORTUNATELY STILL 6 REMAINING - SOME DUE TO LABELS THOUGH - SEE THE DIFFERENCE FROM MINEsIGNED TO MINEzn!
+  PRFM ALSO DUE TO LABELS - all due to labels!!!! and in most cases there is an or!
+  SO FIXED
 (|) 
 UXTW #0
+!uimm5! - FIXED :) but heavy assumptions
