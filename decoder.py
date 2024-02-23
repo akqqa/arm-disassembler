@@ -23,6 +23,7 @@ class EncodingTable():
         self.instructionEncoding = None
         self.directFile = None # Used only in cases where an iclass_sect has no table and is just one instruction name
         # Handles regular tables and iclass_sects differently
+        # sect: this Encoding Table is a table where each entry links to the iformfile of a specific instruction.
         if sect:
             variables = {}
             # Use the regdiagram to create instructionencoding for this table
@@ -36,7 +37,6 @@ class EncodingTable():
                         varWidth = 1 #For some reason doesnt declare 1 width if the width is 1
                     variables[box.attrib["name"]] = [int(box.attrib["hibit"]), int(varWidth)]
             self.instructionEncoding = InstructionEncoding(variables)
-            #print(variables)
 
             instructiontable = hierarchy.find("instructiontable")
 
@@ -72,6 +72,7 @@ class EncodingTable():
                     self.entries[tuple(mapping)] = InstructionPage("arm-files/" + tr.attrib["iformfile"])
                 else:
                     self.entries[tuple(mapping)] = tr.attrib["encname"]
+        # a node, not an iclass_sect. so handle accoridngly, creating further encodingtable objects in the entries
         else:
             variables = {}
             # Use regdiagram to create the isntructionencoding for this table
@@ -97,7 +98,7 @@ class EncodingTable():
                 if "groupname" in node.attrib:
                     self.entries[tuple(mapping)] = EncodingTable(root, node)
                 elif "iclass" in node.attrib:
-                    iclass_sects = root.findall(".//iclass_sect")  # very inefficient, can cache for better performancegamb
+                    iclass_sects = root.findall(".//iclass_sect")  # very inefficient, can cache for better performance
                     found = False
                     for sect in iclass_sects:
                         if sect.attrib["id"] == node.attrib["iclass"]:
@@ -176,47 +177,6 @@ class EncodingTable():
                     # Compare the two strings
                     return compareWithXs(tup[1], var[1])
         return False
-    
-    def disassemble(self, filename):
-        if (filename[-4:] == ".bin"):
-            file = open(filename, "rb")
-            bs = file.read(4)
-            while (bs):
-                # reverse the array, for endianness
-                bs = bs[::-1]
-                # Convert to binary
-                bs = [bin(x) for x in bs]
-                # Remove the 0b's
-                bs = [x[2:] for x in bs]
-                # finally, pad with leading 0's
-                bs = [addLeadingZeroes(x) for x in bs]
-                # Add all bytes, then decode the instruction
-                instruction = "".join(bs)
-                bs = file.read(4)
-        elif (filename[-4:] == ".elf"):
-            # Will likely have to check whether the file is big or little endian
-            with open(filename, "rb") as f:
-                elfFile = ELFFile(f)
-                textSection = elfFile.get_section_by_name(".text")
-                data = textSection.data()
-                # Iterate over ever 4 bytes of the byte array to get each instruction and decode it
-                # Get the next 4 bytes of the data
-                for i in range(0, len(data), 4):
-                    instructionBytes = data[i:i+4]
-                    # reverse the array, for endianness
-                    instructionBytes = instructionBytes[::-1]
-                    # Convert to binary
-                    instructionBytes = [bin(x) for x in instructionBytes]
-                    # Remove the 0b's
-                    instructionBytes = [x[2:] for x in instructionBytes]
-                    # finally, pad with leading 0's
-                    instructionBytes = [addLeadingZeroes(x) for x in instructionBytes]
-                    # Add all bytes, then decode the instruction
-                    instruction = "".join(instructionBytes)
-                    print(self.decode(instruction))
 
-def addLeadingZeroes(num):
-    leading = "0" * (8-len(num))
-    return leading + num
 
 

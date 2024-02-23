@@ -322,7 +322,7 @@ Around 2430 instructions total tested!
     see line 465 in instruction.py to continue this fix
     FIXED - as well as further fix of the general decoding that i ddint see before. final improveemnt - make it actually subtract!
 3. or support - should pick one or the other with |. unsure how to pick which?
-4. fix up the encoding error - choose option and explanation based off the option in the header!
+4. fix up the encoding error - choose option and explanation based off the option in the header! - BOXES IN ENCODING TO CHOOSE WHICH - EASY BUT IT SHOULD DO THIS ALREADY!? WHY DOESNT IT
 5. mls insutrcitons have binary given at the end, should convert to decimal perhaps
 ~~6. cpy_z_p_v_ instead of mov? understandable if alias cant match but why give this file name? index_z_rr_ and a bunch of others too! seems to be name of encoding / enclist~~
 --7. lone SBs?--
@@ -350,6 +350,22 @@ THIS IS A CRUCIAL THING TO TALK ABT IN REPORT!! CONFIRMS IT WORKS!!!!!!
 consider uints. are they always used. tables only? etc.
 
 
-CODE IMPROVEMENTS
-each class has own file
-separate file for running the actual dissasembler vs using decoder.py to run the whole thing!
+reunderstanding encodingindex
+
+iclass_sect is a table full of instructions!
+contains a regdiagram for the encoding, then each row of the table. can get iformfile for each row of the table!
+SO encodingtable is created recursively based on a root node
+if sect is set, that means this encoding table is one that maps to isntruction files
+if sect is not set, this means it consists of nodes rather than iclass_sects, and each node can link to a further encoding table, either being an iclass_sect for instruction/instructions, or a similar one
+OH! if a node, can be groupname or iclass. if groupname, contains more nodes. if iclass, this links to the iclass_sect corresponding to it!
+
+
+Bugs to actually fix:
+
+imm/uimm - can do this by parsing the description for "signed immediate"
+OH - CAN SAY "A MULTIPLE OF X" AND THIS IMPLIES THE NUMBER IS MULTIPLIED BY X
+st1 isnt showing the optional parts??
+subtraction for some immediates
+conditions for some isntructions e.g ,  ]
+(|) 
+UXTW #0

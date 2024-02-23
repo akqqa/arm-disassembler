@@ -4,7 +4,6 @@ import re
 import html
 import boolean
 import sys
-from helpers import *
 
 # Class for storing instruction info - based on each instructions' xml file
 # Due to nature of instructions, should have one class for the xml, then contains many objects that are classes iclass
@@ -290,6 +289,8 @@ class Explanation():
         self.table = []
         self.bitmaskImmediate = False
         self.implicitValue = None
+        self.signed = False
+        self.multipleOf = None
         # If no account, then is a table as uses definition instead
         if root.find("account") == None:
             # If the first col is size, and the last includes M:Rm, encodedIn is size:M:Rm
@@ -331,6 +332,13 @@ class Explanation():
             implicit = re.search("implicit value (\d+)\.", encodingText)
             if implicit is not None:
                 self.implicitValue = implicit.group(1)
+            # Check if signed - space beforehand to exlcude "unsigned"
+            if " signed immediate" in encodingText:
+                self.signed = True
+            # Check if multiple of
+            multiple = re.search("multiple of (\d+)", encodingText)
+            if multiple is not None:
+                self.multipleOf = int(multiple.group(1))
 
             # if "encoded as" in encodingText and "vector" not in encodingText:
             #     print(encodingText)
@@ -406,8 +414,14 @@ class Explanation():
             if self.bitmaskImmediate:
                 result = decodeBitmaskImmediate(result)
 
-            # Convert binary to int
-            result = str(int(result, 2))
+            # Convert binary to int - if it is signed, use twos complement, otherwise directly translate to binary
+            if self.signed:
+                result = str(twosComplement(result))
+            else:
+                result = str(int(result, 2))
+
+            if self.multipleOf:
+                result = str(self.multipleOf * int(result))
 
             #if equation not None, use own stack method to calcuate what the true result should be
             if self.equation is not None:
@@ -486,6 +500,9 @@ class Explanation():
                     replacement = str(int(replacement, 2))
                     result = result.replace(m.group(0), replacement)
             #else: # Otherwise assumes the whole string is able to be split by colons - IF DOES THIS, ERROR WHEN USING A SYMBOL THAT ISNT CONVERTED TO ITS INT LIKE 1 AND H
+            # why? because calculate concat symbols assumes that the H is the value of the variable, rather than simply the character "H". 
+            # Simply have to make the assumption that colons will only be used in tables if integers, otherwise it makes zero sense. why would you say "H:B:S" instead of HBS?
+            # and if you want H + the value imm4 you can do H:Uint(imm4). NON-TABLE ALWAYS ASSUMES CONVERSION TO NUMBERS, TABLE IS USED WHEN NOT NUMBERS - TAHTS THE WHOLE POINT
                 #result = calculateConcatSymbols(result, values)
 
             # Handle special case of [absent] and [present]
