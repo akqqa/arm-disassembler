@@ -77,6 +77,21 @@ class InstructionPage():
         for c in self.classes:
             matches = True
             encoding = c.instructionDescription
+            matches = True
+            # Extract all ZN strings alongside their starting indices in the string
+            znStrings = re.finditer("[ZN]+", encoding)
+            for match in znStrings:
+                znString = match.group()
+                startindex = match.start()
+                # Convert zs and ns to 1s and 0s
+                znString = znString.replace("Z", "0")
+                znString = znString.replace("N", "1")
+                # Check if the znString matches the substring from startindex to endindex. if so, this encoding is not correct
+                if compareWithXs(znString, instString[startindex:startindex+len(znString)]):
+                    matches = False # String wont match regardless of next part
+            # Replaces all z's and n's with x, as already exited if invalid
+            encoding = encoding.replace("Z", "x")
+            encoding = encoding.replace("N", "x")
             for i in range(0, len(encoding)):
                 #print(instString[i])
                 #print(encoding[i])
@@ -190,7 +205,7 @@ class InstructionClass():
         self.encodingSections = None # The list of possible encodings - as in the encoding xml tags.
         
         variables = {}
-        # Use the regdiagram to create instructionencoding for this table - IS THIS EVEN NEEDED?> DONT THINK SO~!!! YS IT IS - FOR GETTING THE VARIABLES FOR EXPLANATIONS!!
+        # Use the regdiagram to create instructionencoding for this table
         # At the same time, get the details to create the instructiondescription
         regdiagram = root.find("regdiagram")
         boxes = regdiagram.findall("box")
@@ -202,17 +217,25 @@ class InstructionClass():
                 else:
                     varWidth = 1 #For some reason doesnt declare 1 width if the width is 1
                 variables[box.attrib["name"]] = [int(box.attrib["hibit"]), int(varWidth)]
-            # Instruction form logic
+            # Instruction form logic - ACCOUNTS FOR != WITH LARGER COLSPANS
             if "settings" in box.attrib:
                 index = 31 - int(box.attrib["hibit"])
                 # Create a string corresponding to the digits in this box
                 instructionSection = ""
                 characters = box.findall("c")
                 for char in characters:
-                    if char.text == "0" or char.text == "1":
-                        instructionSection += char.text
-                    else:
-                        instructionSection += "x"
+                    # If the c has colspan, find the characters it shouldnt be, convert them to Zs and Ns, then add to instructionSection
+                    if "colspan" in char.attrib:
+                        split = char.text.replace(" ", "").split("!=") # Like in decoding string of form 00 != 110, splits the string
+                        # In the second half, replace 1's with Ns and 0's with Zs
+                        split[1] = split[1].replace("1", "N")
+                        split[1] = split[1].replace("0", "Z")
+                        instructionSection += "".join(split)
+                    else: # If the c is regular, and just contains one digit
+                        if char.text == "0" or char.text == "1":
+                            instructionSection += char.text
+                        else:
+                            instructionSection += "x"
                 # Replace the characters at the index in the instructionDescription with this section
                 self.instructionDescription = self.instructionDescription[:index] + instructionSection + self.instructionDescription[index + len(instructionSection):]
         self.instructionEncoding = InstructionEncoding(variables)
@@ -235,19 +258,12 @@ class InstructionClass():
             # Extract all ZN strings alongside their starting indices in the string
             znStrings = re.finditer("[ZN]+", encoding)
             for match in znStrings:
-                # print("HELLO THERE")
-                # print(match.group())
                 znString = match.group()
                 startindex = match.start()
-                # print(len(znString))
-                # print(instString[startindex:startindex+len(znString)])
                 # Convert zs and ns to 1s and 0s
                 znString = znString.replace("Z", "0")
                 znString = znString.replace("N", "1")
                 # Check if the znString matches the substring from startindex to endindex. if so, this encoding is not correct
-                # print(znString)
-                # print(instString[startindex:startindex+len(znString)])
-                # print(compareWithXs(znString, instString[startindex:startindex+len(znString)]))
                 if compareWithXs(znString, instString[startindex:startindex+len(znString)]):
                     matches = False # String wont match regardless of next part
             # Replaces all z's and n's with x, as already exited if invalid

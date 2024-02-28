@@ -24,20 +24,22 @@ class EncodingTable():
         self.directFile = None # Used only in cases where an iclass_sect has no table and is just one instruction name
         # Handles regular tables and iclass_sects differently
         # sect: this Encoding Table is a table where each entry links to the iformfile of a specific instruction.
-        if sect:
-            variables = {}
-            # Use the regdiagram to create instructionencoding for this table
-            regdiagram = hierarchy.find("regdiagram")
-            boxes = regdiagram.findall("box")
-            for box in boxes:
-                if "name" in box.attrib:
-                    if "width" in box.attrib:
-                        varWidth = box.attrib["width"]
-                    else:
-                        varWidth = 1 #For some reason doesnt declare 1 width if the width is 1
-                    variables[box.attrib["name"]] = [int(box.attrib["hibit"]), int(varWidth)]
-            self.instructionEncoding = InstructionEncoding(variables)
 
+        variables = {}
+        # Use the regdiagram to create instructionencoding for this table
+        regdiagram = hierarchy.find("regdiagram")
+        boxes = regdiagram.findall("box")
+        for box in boxes:
+            if "name" in box.attrib:
+                if "width" in box.attrib:
+                    varWidth = box.attrib["width"]
+                else:
+                    varWidth = 1 #For some reason doesnt declare 1 width if the width is 1
+                variables[box.attrib["name"]] = [int(box.attrib["hibit"]), int(varWidth)]
+        self.instructionEncoding = InstructionEncoding(variables)
+
+        # If EncodingTable is representing an iclass_sect
+        if sect:
             instructiontable = hierarchy.find("instructiontable")
 
             tableVars = []
@@ -52,53 +54,46 @@ class EncodingTable():
                 else:
                    self.directFile = tr.attrib["encname"]
                 return
-            # Otherwise, get the tableVars in order by reading the text of headings2's
+
+            # Get the tableVars in order by reading the text of headers's
             ths = headers[1].findall("th") 
             for th in ths:
                 tableVars.append(th.text)
 
-            # Next, go into the tbody. For each tr, select the first n td's where n is len(tableVars), get text 
-            # Then, each in a tuple with its expected value (the text), and push each of these into a mapping array
-            # Finally, append the tuple of this array as a key to the entires, with the encname as the value mapped
+            # Enter tbody, which is the body of the table
             body = instructiontable.find("tbody")
+            # For each row of the table
             for tr in body.findall("tr"):
                 mapping = []
-                #print(tableVars)
+                # Find all columns in the row, and iterate through them
                 tds = tr.findall("td")
                 for i in range(0, len(tableVars)):
+                    # Add to mapping, tuples of (varname, expected value)
                     mapping.append((tableVars[i], tds[i].text))
                 # If a file exists, set the mapping to the filename, otherwise encname
                 if "iformfile" in tr.attrib:
                     self.entries[tuple(mapping)] = InstructionPage("arm-files/" + tr.attrib["iformfile"])
                 else:
                     self.entries[tuple(mapping)] = tr.attrib["encname"]
-        # a node, not an iclass_sect. so handle accoridngly, creating further encodingtable objects in the entries
+        # a node, not an iclass_sect. so handle accordingly, creating further encodingtable objects in the entries
         else:
-            variables = {}
-            # Use regdiagram to create the isntructionencoding for this table
-            regdiagram = hierarchy.find("regdiagram")
-            boxes = regdiagram.findall("box")
-            for box in boxes:
-                if "name" in box.attrib:
-                    variables[box.attrib["name"]] = [int(box.attrib["hibit"]), int(box.attrib["width"])]
-            self.instructionEncoding = InstructionEncoding(variables)
-
             # Iterate through each node, adding their entry to the table
             nodes = hierarchy.findall("node")
-            # If a groupname, create an dict of the mapping from the decode, then add to entries, with the value being a newly defined encodingtable with the xml parsed
-            # If an iclass, create an dict of the mapping from the decode, then add the name as the value
             for node in nodes:
                 mapping = []
                 decode = node.find("decode")
                 boxes = decode.findall("box")
+                # Create each table entry through reading the decode section
                 for box in boxes:
                     name = box.attrib["name"]
                     value = box.find("c").text
                     mapping.append((name, value))
+                # If a groupname, create an dict of the mapping from the decode, then add to entries, with the value being a newly defined encodingtable with the xml parsed
                 if "groupname" in node.attrib:
                     self.entries[tuple(mapping)] = EncodingTable(root, node)
+                # If an iclass, find the iclass_sect it corresponds to and create an EncodingTable based on it
                 elif "iclass" in node.attrib:
-                    iclass_sects = root.findall(".//iclass_sect")  # very inefficient, can cache for better performance
+                    iclass_sects = root.findall(".//iclass_sect")
                     found = False
                     for sect in iclass_sects:
                         if sect.attrib["id"] == node.attrib["iclass"]:
@@ -124,7 +119,7 @@ class EncodingTable():
 
         # If there is no table, handle special case and directly assign directFile
         if self.directFile is not None:
-            if type(self.directFile) is EncodingTable:
+            if type(self.directFile) is EncodingTable: # this will NEVER occur, as directfile only occurs due to a quirk of the structure with instructions, but included for completeness
                 return self.directFile.decode(instruction)
             elif type(self.directFile) is InstructionPage:
                 # Return either name or the matched InstructionPage
