@@ -16,17 +16,17 @@ class EncodingTable():
     # Value: either an instruction name or a further encodingtable
 
     # Initialises with xml, which starts at the root node of the encoding table that will be converted to this class
-    # instructionEncoding - the instruction encoding to map variables on incoming instructions
+    # instructionMapping - the instruction mapping to map variables on incoming instructions
     # entries - the table, with keys being tuples of variable values to match, and values either being instructions or nested EncodingTables
     def __init__(self, root, hierarchy, sect=False):
         self.entries = {}
-        self.instructionEncoding = None
+        self.instructionMapping = None
         self.directFile = None # Used only in cases where an iclass_sect has no table and is just one instruction name
         # Handles regular tables and iclass_sects differently
         # sect: this Encoding Table is a table where each entry links to the iformfile of a specific instruction.
 
         variables = {}
-        # Use the regdiagram to create instructionencoding for this table
+        # Use the regdiagram to create instructionMapping for this table
         regdiagram = hierarchy.find("regdiagram")
         boxes = regdiagram.findall("box")
         for box in boxes:
@@ -36,7 +36,7 @@ class EncodingTable():
                 else:
                     varWidth = 1 #For some reason doesnt declare 1 width if the width is 1
                 variables[box.attrib["name"]] = [int(box.attrib["hibit"]), int(varWidth)]
-        self.instructionEncoding = InstructionEncoding(variables)
+        self.instructionMapping = InstructionMapping(variables)
 
         # If EncodingTable is representing an iclass_sect
         if sect:
@@ -115,7 +115,7 @@ class EncodingTable():
 
     def decode(self, instruction):
         # Extract variables from the instruction
-        values = self.instructionEncoding.assignValues(instruction)
+        values = self.instructionMapping.assignValues(instruction)
 
         # If there is no table, handle special case and directly assign directFile
         if self.directFile is not None:
@@ -134,7 +134,7 @@ class EncodingTable():
             matches = True
             # Check if every variable in the instruction matches an instructon in the table entry
             for tup in row:
-                if not self.matchVar(values, tup): # Checks if any of the values (variable values extracted from the instruction based on the encoding) match the number in the row tuple
+                if not self.matchVar(values, tup): # Checks if any of the values (variable values extracted from the instruction based on the encoding) match the variable in the key's tuple
                     matches = False
             if matches:
                 # This is the correct row
@@ -147,8 +147,8 @@ class EncodingTable():
                     return self.entries[row]
         return None
 
-    # vars = all variables extracted from the endcoding
-    # tup = a single number
+    # vars = all variables and their values extracted from the endcoding
+    # tup = a single tuple (variable name, value)
     # This method finds if the variable with the same name as this tuple has the same values
     def matchVar(self, vars, tup):
         # Check each var

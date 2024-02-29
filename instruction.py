@@ -19,7 +19,7 @@ import sys
 # pseudocode
 
 # When an instructon is matched:
-# superclass goes through each class, matches the instructionencodings
+# superclass goes through each class, matches the instructionMappings
 # once correct iclass found, can get an object of the correct symbols
 # use pseudocode to map symbols
 # superclass can map these to the symbols, then the asmtemplate used!
@@ -76,10 +76,10 @@ class InstructionPage():
     def matchClass(self, instString):
         for c in self.classes:
             matches = True
-            encoding = c.instructionDescription
+            description = c.instructionDescription
             matches = True
             # Extract all ZN strings alongside their starting indices in the string
-            znStrings = re.finditer("[ZN]+", encoding)
+            znStrings = re.finditer("[ZN]+", description)
             for match in znStrings:
                 znString = match.group()
                 startindex = match.start()
@@ -90,12 +90,11 @@ class InstructionPage():
                 if compareWithXs(znString, instString[startindex:startindex+len(znString)]):
                     matches = False # String wont match regardless of next part
             # Replaces all z's and n's with x, as already exited if invalid
-            encoding = encoding.replace("Z", "x")
-            encoding = encoding.replace("N", "x")
-            for i in range(0, len(encoding)):
+            description = description.replace("Z", "x")
+            description = description.replace("N", "x")
+            for i in range(0, len(description)):
                 #print(instString[i])
-                #print(encoding[i])
-                if instString[i] == encoding[i] or encoding[i] == "x":
+                if instString[i] == description[i] or description[i] == "x":
                     continue
                 else:
                     matches = False
@@ -111,8 +110,8 @@ class InstructionPage():
         # First, get correct class and encoding
         iClass = self.matchClass(instruction)
         encoding = iClass.matchEncoding(instruction)
-        # Get values from instructionencoding
-        values = iClass.instructionEncoding.assignValues(instruction)
+        # Get values from instructionMapping
+        values = iClass.instructionMapping.assignValues(instruction)
         # CHECK AGAINST ALIASES - IF MATCH, CREATE INSTRUCTIONPAGE FOR THE ALIAS, THEN DISSASEMBLE THAT AND RETURN WHAT IT RETURNS
         matchingAliases = self.matchAlias(values)
         # If any aliases match, create an instructionpage for the alias file, and disassemble that file and return that result
@@ -198,14 +197,14 @@ class InstructionPage():
 class InstructionClass():
 
     def __init__(self, root):
-        # Parse the regdiagram. Creating an instruction encoding for mapping variables, as well as an Instruction description to match instructions with the right class
+        # Parse the regdiagram. Creating an instruction mapping for mapping variables, as well as an Instruction description to match instructions with the right class
         self.root = root
         self.instructionDescription = "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx" # Will result in a string that matches the given instruction
-        self.instructionEncoding = None # The encoding of the instruction - a.k.a the variables derived from the description
+        self.instructionMapping = None # The mapping of the instruction - a.k.a the variables derived from the description
         self.encodingSections = None # The list of possible encodings - as in the encoding xml tags.
         
         variables = {}
-        # Use the regdiagram to create instructionencoding for this table
+        # Use the regdiagram to create instructionMapping for this table
         # At the same time, get the details to create the instructiondescription
         regdiagram = root.find("regdiagram")
         boxes = regdiagram.findall("box")
@@ -238,7 +237,7 @@ class InstructionClass():
                             instructionSection += "x"
                 # Replace the characters at the index in the instructionDescription with this section
                 self.instructionDescription = self.instructionDescription[:index] + instructionSection + self.instructionDescription[index + len(instructionSection):]
-        self.instructionEncoding = InstructionEncoding(variables)
+        self.instructionMapping = InstructionMapping(variables)
 
         # Encoding section - contains the asm isntruction based on certain conditions
         encodingSect = root.findall("encoding")
@@ -365,37 +364,35 @@ class Explanation():
             # luckily, this is just found by what is in the "" in the para
             #self.encodedIn = root.find("account").attrib["encodedin"]
             # Uses https://stackoverflow.com/a/11122355 for getting quote indices
-            encodingText = root.find("account").find("intro").find("para").text
+            symbolEncodingText = root.find("account").find("intro").find("para").text
             # Check if bitmask immediate
-            if "bitmask immediate" in encodingText:
+            if "bitmask immediate" in symbolEncodingText:
                 self.bitmaskImmediate = True
             # Check if implicit value
-            implicit = re.search("implicit value (\d+)\.", encodingText)
+            implicit = re.search("implicit value (\d+)\.", symbolEncodingText)
             if implicit is not None:
                 self.implicitValue = implicit.group(1)
             # Check if signed - space beforehand to exlcude "unsigned"
-            if " signed immediate" in encodingText:
+            if " signed immediate" in symbolEncodingText:
                 self.signed = True
-            # Check if multiple of
-            multiple = re.search("multiple of (\d+)", encodingText)
-            divide = re.search("\>/(\d+)", encodingText)
+            # Check if multiple of - checks for both "multiple of" and the "/" symbol - both are used to mean multiple by the following number, but not used consistently
+            multiple = re.search("multiple of (\d+)", symbolEncodingText)
+            divide = re.search("\>/(\d+)", symbolEncodingText)
             if multiple is not None:
                 self.multipleOf = int(multiple.group(1))
             elif divide is not None:
                 self.multipleOf = int(divide.group(1))
 
-            # if "encoded as" in encodingText and "vector" not in encodingText:
-            #     print(encodingText)
-            quoteIndicies = [i for i, ltr in enumerate(encodingText) if ltr == "\""]
+            quoteIndicies = [i for i, ltr in enumerate(symbolEncodingText) if ltr == "\""]
             # Further special case if no encoding - for not just assume it will always be zero - case fo the mova.. instructions for 128 bits
             # this was originally erroneously made to ignore encodedIn. possibly due to an issue with the xml formatting not sensing multiple " in text. preferred fallback is to the encodedin.
             if len(quoteIndicies) != 2:
                 self.encodedIn = html.unescape(root.find("account").attrib["encodedin"])
                 return
-            self.encodedIn = encodingText[quoteIndicies[0]+1:quoteIndicies[1]]
+            self.encodedIn = symbolEncodingText[quoteIndicies[0]+1:quoteIndicies[1]]
 
             # Furthermore, for possible mathematical operations, grab all text between "encoded as" and "." if present
-            match = re.search("encoded as (.*)\.", encodingText)
+            match = re.search("encoded as (.*)\.", symbolEncodingText)
             self.equation = None
             if match: # transform and save the resulting equation
                 # replace the symbol (in quotes), with the variable x

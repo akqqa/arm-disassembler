@@ -378,3 +378,8 @@ Bugs to actually fix:
 UXTW #0
 !TABLES NOT HAVING REGISTER PREFIXES - think this is actually honestly impossible. Va in non-table should have v prefix, but not when in table!!!
   could just hard code the table ones - done!
+
+
+REMAINING BUG THAT DOESNT PREVENT WORKING, JUST DECREASES ACCURACY SLIGHTLY:
+SOME REGDIAGRAMS FOR CLASSS CAN HAVE MANY WIDE C ELEMENTS SUCH AS <C COLSPAN="2"> != 00 <\C>
+can fix this with zs and ns like with encodings, annoying that its inconsistent though..
