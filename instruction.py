@@ -414,8 +414,6 @@ class Explanation():
         # special case for mova on 128 bits, return 0 for an encoding of ""
         if self.encodedIn == "":
             return (self.symbol, "0")
-        # Must account for : - simply get each simple, and combine the values! - normal is just a special case of : where there are none to append
-        encodedList = splitWithBrackets(self.encodedIn)
 
         # SPECIAL CASE: https://developer.arm.com/documentation/ddi0602/2023-12/SIMD-FP-Instructions/UMOV--Unsigned-Move-vector-element-to-general-purpose-register-
         # <row>
@@ -424,33 +422,85 @@ class Explanation():
         # </row>
         # believe that imm5<4:1> is stating to get the 5th (from the end) and 2nd (from the end) bit of imm5?
         # so do an additional check for <>'s, if so handle accordingly separate to other : splits
-        #print(encodedList)
 
+        # Search the stored table to find the mapping
+        if self.table != []:
+            rowLength = len(self.table[0])
+            values = list(values)
+            # Using the header row, create a list matching the variables in the columns to match
+            matchList = []
+            for i in range(0, len(self.table[0])-1):
+                var = self.table[0][i]
+                match = [tup[1] for tup in values if tup[0] == var]
+                matchList = matchList + match
+            # Then iterate through each row, matching the list of expected values
+            matchingRow = None
+            for row in self.table:
+                rowVars = row[:self.tableResultIndex]
+                if (all([compareWithXs(fst, snd) for fst, snd in zip(rowVars, matchList)])): #zips rowVars and matchList, then compares each element accounting for xs to check if the lists match
+                    matchingRow = row
+            if matchingRow == None:
+                print(self.enclist,file=sys.stderr)
+                print("Error: could not match the table - invalid machine code given OR unknown label present", file=sys.stderr)
+                print(values, file=sys.stderr)
+                return (self.symbol, "") # For now, just return it as empty. However, this occurs when https://developer.arm.com/documentation/ddi0602/2023-12/Base-Instructions/LDRB--register---Load-Register-Byte--register--?lang=en
+                # basically some encoding is used when option != 011, another when option == 011. This is jusut always doing the first, so error when it is 011 and nothing defined for it!
+            # Once found, get the final result
+            # NOTE FINAL RESULT COULD BE OF FORM IMM5<4:1> SO TAKE THIS INTO ACCOUNT TOO
+
+            # Intead of getting the last in the row, get the one that is actually the symbol - see arm-files/msr_imm.xml
+            # Result is stored in the nth element, where n is the tableResultIndex constructed when the table was built
+            result = matchingRow[self.tableResultIndex]
+
+            # Handle things such as H<4:3>:imm4. Unlike in non-table, sometimes doesnt convert to integers
+            if "UInt(" in result:
+                # Finds all UInt() sections in the asm, and handles their inner elements, replacing them with the final value
+                functions = re.finditer("UInt\\((.*)\\)", result)
+                # If none, just caclulateConcatSymbols normally, as can assume its across the whole element
+                for m in functions:
+                    replacement = calculateConcatSymbols(m.group(1), values) # ONLY DOES THIS IN TABLE AS IN NON-TABLE IT ALWAYS JUST TREATS IT AS separated by brackets. this assumes that 
+                    # Convert to decimal if possible
+                    replacement = str(int(replacement, 2))
+                    result = result.replace(m.group(0), replacement)
+            #else: # Otherwise assumes the whole string is able to be split by colons - IF DOES THIS, ERROR WHEN USING A SYMBOL THAT ISNT CONVERTED TO ITS INT LIKE 1 AND H
+            # why? because calculate concat symbols assumes that the H is the value of the variable, rather than simply the character "H". 
+            # Simply have to make the assumption that colons will only be used in tables if integers, otherwise it makes zero sense. why would you say "H:B:S" instead of HBS?
+            # and if you want H + the value imm4 you can do H:Uint(imm4). NON-TABLE ALWAYS ASSUMES CONVERSION TO NUMBERS, TABLE IS USED WHEN NOT NUMBERS - TAHTS THE WHOLE POINT
+                #result = calculateConcatSymbols(result, values)
+
+            # Account for #uimm5 and #uimm4 referring to their own pattern
+            # Assumptions : always uimm4 or uimm5, and only has one other row in the table
+            # Not very robust, but since theres no documentation cant really tell what its meant to mean!
+            if "uimm5" in result:
+                result = result.replace("uimm5", str(int(calculateConcatSymbols(self.encodedIn, values),2)))
+            if "uimm4" in result:
+                result = result.replace("uimm4", str(int(calculateConcatSymbols(self.encodedIn, values),2)))
+
+            # Handle special case of [absent] and [present]
+            if result == "[absent]":
+                result = ""
+            elif result == "[present]":
+                result = self.symbol
+
+            # Handle potential subtraction (if form digits - digits perform the subtraction)
+            subtraction = re.match("(\d+) - (\d+)", result)
+            if subtraction is not None:
+                result = str(int(subtraction.group(1)) - int(subtraction.group(2)))
+
+            # Unfortunately not consistent with the non-table forms. e.g Va and Vb in SQRSHRN describe the prefix rather than require it!!
+            registerPrefixTest = re.search("([WXVQDSHBZCP]|PN)[nmdtasgv]", self.symbol)
+            if registerPrefixTest is not None:
+                if not ("Va" in self.symbol) and not ("Vb" in self.symbol): # These were the only two outliers found
+                    # Add register prefix to result
+                    result = registerPrefixTest.group(1).lower() + result
+                return (self.symbol, result)
+            
+        
+            return (self.symbol, result)
         # If no table, simply find the variable the symbol is encoded in, and return this (taking into account indexing with <> after symbol)
-        if self.table == []:
+        else:
             result = ""
-            result = calculateConcatSymbols(self.encodedIn, values) # THIS DOES THE SAME AS BELOW BUT BETTER!
-            # for sym in encodedList:
-            #     # Remove anything after < as this is ignored to match the possible symbols - https://stackoverflow.com/a/904756
-            #     symStrip = sym.split("<", 1)[0]
-            #     for tup in values:
-            #         if tup[0] == symStrip:
-            #             result += tup[1]
-            # # If has indices for parts of the binary, extract them and extract the correct ones from result
-            # if "<" in sym:
-            #     indexes = sym.split("<",1)[1][:-1]
-            #     # Split by colons
-            #     indexes = indexes.split(":")
-            #     # Get each digit from result and concatenate to get new result
-            #     length = len(result)-1
-            #     normIndexes = [length - int(x) for x in indexes]
-            #     newResult = ""
-            #     #slice using indicies
-            #     if (len(normIndexes) == 1): # Can be slice<1>. so must account for only being on index
-            #         newResult = result[normIndexes[0]]
-            #     else:
-            #         newResult = result[normIndexes[0]:normIndexes[1]+1]
-            #     result = newResult
+            result = calculateConcatSymbols(self.encodedIn, values)
 
             # Check if bitmask immediate, and if so decode the result as a bitmask immediate
             if self.bitmaskImmediate:
@@ -486,81 +536,6 @@ class Explanation():
 
             return (self.symbol, result)
 
-        # Search the stored table to find the mapping
-        else:
-            rowLength = len(self.table[0])
-            values = list(values)
-            # Using the header row, create a list matching the variables in the columns to match
-            matchList = []
-            for i in range(0, len(self.table[0])-1):
-                var = self.table[0][i]
-                match = [tup[1] for tup in values if tup[0] == var]
-                matchList = matchList + match
-            # Then iterate through each row, matching the list of expected values
-            matchingRow = None
-            for row in self.table:
-                rowVars = row[:self.tableResultIndex]
-                if (all([compareWithXs(fst, snd) for fst, snd in zip(rowVars, matchList)])): #zips rowVars and matchList, then compares each element accounting for xs to check if the lists match
-                    matchingRow = row
-            if matchingRow == None:
-                print(self.enclist,file=sys.stderr)
-                print("Error: could not match the table - invalid machine code given OR unknown label present", file=sys.stderr)
-                print(values, file=sys.stderr)
-                return (self.symbol, "") # For now, just return it as empty. However, this occurs when https://developer.arm.com/documentation/ddi0602/2023-12/Base-Instructions/LDRB--register---Load-Register-Byte--register--?lang=en
-                # basically some encoding is used when option != 011, another when option == 011. This is jusut always doing the first, so error when it is 011 and nothing defined for it!
-            # Once found, get the final result
-            # NOTE FINAL RESULT COULD BE OF FORM IMM5<4:1> SO TAKE THIS INTO ACCOUNT TOO
-
-            # Intead of getting the last in the row, get the one that is actually the symbol - see arm-files/msr_imm.xml
-            # Result is stored in the nth element, where n is the tableResultIndex constructed when the table was built
-            result = matchingRow[self.tableResultIndex]
-
-            # Account for #uimm5 and #uimm4 referring to their own pattern
-            # Assumptions : always uimm4 or uimm5, and only has one other row in the table
-            # Not very robust, but since theres no documentation cant really tell what its meant to mean!
-            if "uimm5" in result:
-                result = result.replace("uimm5", str(int(calculateConcatSymbols(self.encodedIn, values),2)))
-            if "uimm4" in result:
-                result = result.replace("uimm4", str(int(calculateConcatSymbols(self.encodedIn, values),2)))
-
-            # Handle things such as H<4:3>:imm4. Unlike in non-table, sometimes doesnt convert to integers
-            if "UInt(" in result:
-                # Finds all UInt() sections in the asm, and handles their inner elements, replacing them with the final value
-                functions = re.finditer("UInt\\((.*)\\)", result)
-                # If none, just caclulateConcatSymbols normally, as can assume its across the whole element
-                for m in functions:
-                    replacement = calculateConcatSymbols(m.group(1), values) # ONLY DOES THIS IN TABLE AS IN NON-TABLE IT ALWAYS JUST TREATS IT AS separated by brackets. this assumes that 
-                    # Convert to decimal if possible
-                    replacement = str(int(replacement, 2))
-                    result = result.replace(m.group(0), replacement)
-            #else: # Otherwise assumes the whole string is able to be split by colons - IF DOES THIS, ERROR WHEN USING A SYMBOL THAT ISNT CONVERTED TO ITS INT LIKE 1 AND H
-            # why? because calculate concat symbols assumes that the H is the value of the variable, rather than simply the character "H". 
-            # Simply have to make the assumption that colons will only be used in tables if integers, otherwise it makes zero sense. why would you say "H:B:S" instead of HBS?
-            # and if you want H + the value imm4 you can do H:Uint(imm4). NON-TABLE ALWAYS ASSUMES CONVERSION TO NUMBERS, TABLE IS USED WHEN NOT NUMBERS - TAHTS THE WHOLE POINT
-                #result = calculateConcatSymbols(result, values)
-
-            # Handle special case of [absent] and [present]
-            if result == "[absent]":
-                result = ""
-            elif result == "[present]":
-                result = self.symbol
-
-            # CURRENT CAVEAT - SYMBOLS GIVEN BY TABLE CANNOT HAVE REGISTER PREFIX
-
-            # Handle potential subtraction (if form digits - digits perform the subtraction)
-            subtraction = re.match("(\d+) - (\d+)", result)
-            if subtraction is not None:
-                result = str(int(subtraction.group(1)) - int(subtraction.group(2)))
-
-            # Unfortunately not consistent with the non-table forms. e.g Va and Vb in SQRSHRN describe the prefix rather than require it!!
-            registerPrefixTest = re.search("([WXVQDSHBZCP]|PN)[nmdtasgv]", self.symbol)
-            if registerPrefixTest is not None:
-                if not ("Va" in self.symbol) and not ("Vb" in self.symbol): # These were the only two outliers found
-                    # Add register prefix to result
-                    result = registerPrefixTest.group(1).lower() + result
-                return (self.symbol, result)
-            
-            return (self.symbol, result)
 
 if __name__ == "__main__":
     print(splitWithBrackets("imm5<4:3>:imm4<3>"))

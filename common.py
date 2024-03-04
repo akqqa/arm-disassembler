@@ -4,28 +4,27 @@ import html
 import boolean
 import sys
 
-# Class to store the variable encoding of a binary instruction
+# Class to store the variable mapping of a binary instruction
 # Starts by being given the variable lengths and positions upon instantiation, then can be fed an actual binary string, where it will assign the variables to their actual values
 # Perhaps change this to simply return the values dict, instead of tying it inherently to the object for better representation of what is actually being done
-class InstructionEncoding():
+class InstructionMapping():
 
-    # Default example encoding - [start position, length(inclusive)]
-    encodings = {
+    # Default example mapping - [start position, length(inclusive)]
+    mappings = {
         "op0": [31, 1],
         "op1": [28, 4]
     }
 
-    def __init__(self, encodings=encodings):
-        self.encodings = encodings
+    def __init__(self, mappings=mappings):
+        self.mappings = mappings
 
     def assignValues(self, instruction):
-        #print(self.encodings)
         values = []
         if len(instruction) != 32:
             return False
-        for var in self.encodings.keys():
-            start = 31 - self.encodings[var][0] # 31 - as the encoding is done 31-0 whereas arrays are 0-31
-            end = start + self.encodings[var][1]
+        for var in self.mappings.keys():
+            start = 31 - self.mappings[var][0] # 31 - as the mapping is done 31-0 whereas arrays are 0-31
+            end = start + self.mappings[var][1]
             value = instruction[start:end]
             values.append((var, value))
         #print("values: " + str(values))
@@ -62,6 +61,13 @@ def getASM(asmelement):
 # Similar to the equation parsing but more complex as can have ==, !=, && and (||)
 # Likely can use a premade boolean logic library. extract all x == y or x != y, replace them with True or False, then evaluatte logically!
 def aliasCondCheck(condition, values):
+
+    # Checks for never and unconditionally
+    if condition == "Unconditionally":
+        return True
+    if condition == "Never":
+        return False
+
     condition = condition.replace("'", "")
     condition = condition.replace("(", "( ")
     condition = condition.replace(")", " )")
@@ -198,8 +204,11 @@ def calculateConcatSymbols(result, values):
                 # Get each digit from result and concatenate to get new result
                 length = len(val[0])-1
                 result = ""
-                for index in indexes:
-                    result += val[0][length - int(index)]
+                # If only one index, get that bit, otherwise get substring between the two indicies
+                if len(indexes) > 1:
+                    result += val[0][length - int(indexes[0]) : length - int(indexes[1]) + 1]
+                else:
+                    result += val[0][length - int(indexes[0])]
             else:
                 result = val[0]
             finalResult += result
