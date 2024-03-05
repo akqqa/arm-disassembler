@@ -161,8 +161,64 @@ class TestCalculateConcatSymbols(unittest.TestCase):
         values = tuple([("imm5", "10110"), ("imm4", "1101101"), ("imm3", "111"), ("imm2", "0100100")]) # Matches how assignValues creates tuples
         self.assertEqual(calculateConcatSymbols("imm5<4:3>:imm4<5>:imm3<2:0>:imm2", values), "1011110100100")
 
+class TestEvaluateEquation(unittest.TestCase):
 
+    def testBasicValue(self):
+        self.assertEqual(evaluateEquation("x", 5), 5)
+
+    def testMultiplication(self):
+        self.assertEqual(evaluateEquation("x times 6", 5), 30)
+
+    def testAddition(self):
+        self.assertEqual(evaluateEquation("x plus 6", 5), 11)
+
+    def testSubtraction(self):
+        self.assertEqual(evaluateEquation("x minus 6", 5), -1)
     
+    def testModulo(self):
+        self.assertEqual(evaluateEquation("x modulo 3", 5), 2)
+    
+    # Tests that with multiple operators it correctly evaluates from left to right
+    def testMultipleOperators(self):
+        self.assertEqual(evaluateEquation("x times 5 plus 2 modulo 4", 5), 3)
+
+    # Tests that if given a malformed equation, it returns None
+    def testMalformed(self):
+        self.assertEqual(evaluateEquation("x times times 4", 5), None)
+        self.assertEqual(evaluateEquation("x times4", 5), None)
+
+class TestDecodeBitmaskImmediate(unittest.TestCase):
+
+    def testRegularBitmask(self):
+        self.assertEqual(decodeBitmaskImmediate("111100000000"), "01") # 0 right rotations and 1 consecutive ones, with a size of 2.
+
+    def testRotatedBitmask(self):
+        self.assertEqual(decodeBitmaskImmediate("111100000001"), "10") # 1 right rotation
+
+    def test32BitBitmask(self):
+        self.assertEqual(decodeBitmaskImmediate("000000000000"), "00000000000000000000000000000001") # 0 right rotations, 32 bits
+
+    def test32BitBitmaskRotated(self):
+        self.assertEqual(decodeBitmaskImmediate("0001011000111"), "11111110000000000000000000011111") # 7 right rotations, 12 ones
+    
+    def test64BitBitmask(self):
+        self.assertEqual(decodeBitmaskImmediate("1101101111010"), "0000000000001111111111111111111111111111111111111111111111000000") # 46 ones, rotated 58 times
+
+    def testInvalidBitmask(self):
+        self.assertEqual(decodeBitmaskImmediate("01010"), None)
+
+class TestTwosComplement(unittest.TestCase):
+
+    def testPositiveNubmer(self):
+        self.assertEqual(twosComplement("0100110000000"), 2432)
+    
+    def testNegativeNumber(self):
+        self.assertEqual(twosComplement("1011010000000"), -2432)
+
+    def testSingleDigit(self):
+        self.assertEqual(twosComplement("1"), 1)
+
+
 
 if __name__ == '__main__':
     unittest.main()
