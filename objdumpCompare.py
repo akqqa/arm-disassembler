@@ -107,5 +107,5 @@ print("Total operands out of instructions with matching opcodes: " + str(totalOp
 print("Total maching operands: " + str(operandMatches))
 print("Percentage of operands correctly translated: " + str(100 * float(operandMatches) / float(totalOperands)) + "%")
 
-# Unsure if this caclulation is accurate - but basically just saying that this is how many operands are correctly translated given that the opcode is correctly translated
-print("Total accuracy of the disassembler: " + str(100* ((100 * float(operandMatches) / float(totalOperands)) / ((100 * float(opcodeMatches) / float(totalOpcodes))))) + "%")
+totalAccuracy = 100 * (float(operandMatches) / float(totalOperands)) * ( float(opcodeMatches) / float(totalOpcodes))
+print("Total accuracy of the disassembler: " + str(totalAccuracy) + "%")

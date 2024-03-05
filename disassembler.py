@@ -20,8 +20,10 @@ def disassemble(filename, encodingTable):
             bs = [addLeadingZeroes(x) for x in bs]
             # Add all bytes, then decode the instruction
             instruction = "".join(bs)
-            print(instruction)
-            print(encodingTable.decode(instruction))
+            try:
+                print(encodingTable.decode(instruction))
+            except:
+                print("Error - could not translate line") # If fatal crash, worst case is instruction is not translated
             bs = file.read(4)
     elif (filename[-4:] == ".elf"):
         # Will likely have to check whether the file is big or little endian
@@ -43,7 +45,10 @@ def disassemble(filename, encodingTable):
                 instructionBytes = [addLeadingZeroes(x) for x in instructionBytes]
                 # Add all bytes, then decode the instruction
                 instruction = "".join(instructionBytes)
-                print(encodingTable.decode(instruction))
+                try:
+                    print(encodingTable.decode(instruction))
+                except:
+                    print("Error - could not translate line") # If fatal crash, worst case is instruction is not translated
 
 if __name__ == "__main__":
     if (len(sys.argv) != 2):

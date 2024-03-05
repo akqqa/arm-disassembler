@@ -125,7 +125,7 @@ class InstructionPage():
                     asm = aliasClass.disassemble(instruction)
                     return asm
                 except AttributeError:
-                    print("error")
+                    # Match invalid but due to layout of table couldnt tell there was a different one to use
                     continue
 
         symbols = []
