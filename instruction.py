@@ -4,6 +4,8 @@ import re
 import html
 import boolean
 import sys
+import os
+from dotenv import load_dotenv
 
 # Class for storing instruction info - based on each instructions' xml file
 # Due to nature of instructions, should have one class for the xml, then contains many objects that are classes iclass
@@ -121,7 +123,8 @@ class InstructionPage():
             # Tries to traverse list, returning asm for each one. Every error, try the next one. If all error, simply dont use alias
             for matchingAlias in matchingAliases:
                 try:
-                    aliasClass = InstructionPage("arm-files/" + matchingAlias.attrib["aliasfile"])
+                    # Constructs new InstructionPage instead of using the ones already created, as the encodingIndex likely didnt create constructs for aliases!
+                    aliasClass = InstructionPage(ARM_FILE_PATH + "/" + matchingAlias.attrib["aliasfile"])
                     asm = aliasClass.disassemble(instruction)
                     return asm
                 except AttributeError:
@@ -327,6 +330,7 @@ class Explanation():
         self.symbol = root.find("symbol").text
         self.table = []
         self.bitmaskImmediate = False
+        self.bitmaskSize = None
         self.implicitValue = None
         self.signed = False
         self.multipleOf = None
@@ -365,9 +369,13 @@ class Explanation():
             #self.encodedIn = root.find("account").attrib["encodedin"]
             # Uses https://stackoverflow.com/a/11122355 for getting quote indices
             symbolEncodingText = root.find("account").find("intro").find("para").text
-            # Check if bitmask immediate
-            if "bitmask immediate" in symbolEncodingText:
+            # Check if bitmask immediate - -usually says "bitmask immediate", but in some cases such as eor_z_zi_ it just has "bitmask"
+            if "bitmask" in symbolEncodingText:
                 self.bitmaskImmediate = True
+                if "64-bit" in symbolEncodingText:
+                    self.bitmaskSize = 64
+                elif "32-bit" in symbolEncodingText:
+                    self.bitmaskSize = 32
             # Check if implicit value
             implicit = re.search("implicit value (\d+)\.", symbolEncodingText)
             if implicit is not None:
@@ -488,7 +496,7 @@ class Explanation():
                 result = str(int(subtraction.group(1)) - int(subtraction.group(2)))
 
             # Unfortunately not consistent with the non-table forms. e.g Va and Vb in SQRSHRN describe the prefix rather than require it!!
-            registerPrefixTest = re.search("([WXVQDSHBZCP]|PN)[nmdtasgv]", self.symbol)
+            registerPrefixTest = re.search("([WXVQDSHBZCP]|PN|ZA)[nmdtasgv]", self.symbol)
             if registerPrefixTest is not None:
                 if not ("Va" in self.symbol) and not ("Vb" in self.symbol): # These were the only two outliers found
                     # Add register prefix to result
@@ -504,7 +512,7 @@ class Explanation():
 
             # Check if bitmask immediate, and if so decode the result as a bitmask immediate
             if self.bitmaskImmediate:
-                result = decodeBitmaskImmediate(result)
+                result = decodeBitmaskImmediate(result, self.bitmaskSize)
 
             # Convert binary to int - if it is signed, use twos complement, otherwise directly translate to binary
             if self.signed:

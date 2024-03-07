@@ -68,6 +68,8 @@ myFile.close()
 
 if len(objdumpLines) != len(myLines):
     print("output files not same length")
+    print(len(objdumpLines))
+    print(len(myLines))
     exit(1)
 
 totalOpcodes = 0
@@ -94,10 +96,18 @@ for i in range(0, len(myLines)):
             myOperands = myInstruction[1].split(",")
         except IndexError:
             continue
+        show = True
         for i in range(0, len(objdumpOperands)):
             totalOperands += 1
             if objdumpOperands[i] == myOperands[i]:
                 operandMatches += 1
+            elif show:
+                print(objdumpLine)
+                print(myLine)
+                show = False
+    else:
+        print(objdumpLine)
+        print(myLine)
 
 print("Total instructions: " + str(totalOpcodes))
 print("Total maching opcodes: " + str(opcodeMatches))

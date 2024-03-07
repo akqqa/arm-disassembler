@@ -4,6 +4,8 @@ import html
 import boolean
 import sys
 
+ARM_FILE_PATH = "arm-files"
+
 # Class to store the variable mapping of a binary instruction
 # Starts by being given the variable lengths and positions upon instantiation, then can be fed an actual binary string, where it will assign the variables to their actual values
 # Perhaps change this to simply return the values dict, instead of tying it inherently to the object for better representation of what is actually being done
@@ -219,28 +221,34 @@ def calculateConcatSymbols(result, values):
     return finalResult
 
 # Helper method to evaluate equations of the form "x times 5 plus 2 modulo 3"
+# The XML specification never contains instances of division, so not supported
 def evaluateEquation(equation, x):
-    # Split by whitespace
-    equation = equation.split()
-    # Substitute x for the correct value
-    equation = [x if z == "x" else z for z in equation]
-    # Take every second value and place into an integer list
-    numbers = [int(x) for x in equation[::2]]
-    operations = equation[1::2]
-    # For each operation, operate on the first two items of the list
-    for op in operations:
-        fst = numbers.pop(0)
-        snd = numbers.pop(0)
-        if op == "times":
-            result = fst * snd
-        elif op == "plus":
-            result = fst + snd
-        elif op == "minus":
-            result = fst - snd
-        elif op == "modulo":
-            result = fst % snd
-        numbers.insert(0, result)
-    return numbers[0]
+    try:
+        # Split by whitespace
+        equation = equation.split()
+        # Substitute x for the correct value
+        equation = [x if z == "x" else z for z in equation]
+        # Take every second value and place into an integer list
+        numbers = [int(x) for x in equation[::2]]
+        operations = equation[1::2]
+        # For each operation, operate on the first two items of the list
+        for op in operations:
+            fst = numbers.pop(0)
+            snd = numbers.pop(0)
+            if op == "times":
+                result = fst * snd
+            elif op == "plus":
+                result = fst + snd
+            elif op == "minus":
+                result = fst - snd
+            elif op == "modulo":
+                result = fst % snd
+            numbers.insert(0, result)
+        return numbers[0]
+    except ValueError:
+        return None
+    except IndexError:
+        return None
 
 def rightRotateString(rotator, num):
     # Rotate by getting the last num digits, removing them from one side, then adding them to the front
@@ -249,11 +257,14 @@ def rightRotateString(rotator, num):
     return rightEnd + rightStart
 
 # Takes a bitmask immediate as a string, and returns the value as a number
-def decodeBitmaskImmediate(bitmask):
+def decodeBitmaskImmediate(bitmask, size):
     #Bitmask encoded as (N):imms:immr where imms and immr are 6 bits each, and N is 1
     # Add N character if not included in bitmask
     if len(bitmask) == 12:
         bitmask = "0" + bitmask
+    
+    if len(bitmask) != 13:
+        return None
 
     # Using the table from https://dinfuehr.github.io/blog/encoding-of-immediate-values-on-aarch64/ to encode the bitmasks
     # If N = 1, handle as a 64 bit element
@@ -283,9 +294,20 @@ def decodeBitmaskImmediate(bitmask):
     immr = int(immr, 2)
     binaryString = rightRotateString(binaryString, immr)
 
+    # If under size, multiply until size or over
+    if (size != None):
+        original = binaryString
+        while len(binaryString) < size:
+            binaryString += original
+
     return binaryString
 
 def twosComplement(binaryString):
+
+    # If a single digit, just convert to binary
+    if len(binaryString) == 1:
+        return int(binaryString, 2)
+
     # convert binary string without first digit to int
     result = int(binaryString[1:], 2)
     # If the first bit is 1, subtract 2 to the power of the binaryString length - 1 from positiveInt
