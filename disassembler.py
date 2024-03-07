@@ -45,10 +45,10 @@ def disassemble(filename, encodingTable):
                 instructionBytes = [addLeadingZeroes(x) for x in instructionBytes]
                 # Add all bytes, then decode the instruction
                 instruction = "".join(instructionBytes)
-                try:
-                    print(encodingTable.decode(instruction))
-                except:
-                    print("Error - could not translate line") # If fatal crash, worst case is instruction is not translated
+                #try:
+                print(encodingTable.decode(instruction))
+                #except:
+                #    print("Error - could not translate line") # If fatal crash, worst case is instruction is not translated
 
 if __name__ == "__main__":
     if (len(sys.argv) != 2):

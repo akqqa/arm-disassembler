@@ -48,7 +48,7 @@ def transformObjdumpLine(line):
 
     line = line.replace("\n", "")
 
-    return line
+    return line.lower()
 
 def transformMyLine(line):
     line = line.lower()

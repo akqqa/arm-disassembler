@@ -50,7 +50,7 @@ class EncodingTable():
                 tr = instructiontable.find("tbody").find("tr")
                 # Go into tbody, go into first tr, then first td. This contains the iformid!
                 if "iformfile" in tr.attrib:
-                    self.directFile = InstructionPage("arm-files/" + tr.attrib["iformfile"])
+                    self.directFile = InstructionPage(ARM_FILE_PATH + "/" + tr.attrib["iformfile"])
                 else:
                    self.directFile = tr.attrib["encname"]
                 return
@@ -72,7 +72,7 @@ class EncodingTable():
                     mapping.append((tableVars[i], tds[i].text))
                 # If a file exists, set the mapping to the filename, otherwise encname
                 if "iformfile" in tr.attrib:
-                    self.entries[tuple(mapping)] = InstructionPage("arm-files/" + tr.attrib["iformfile"])
+                    self.entries[tuple(mapping)] = InstructionPage(ARM_FILE_PATH + "/" + tr.attrib["iformfile"])
                 else:
                     self.entries[tuple(mapping)] = tr.attrib["encname"]
         # a node, not an iclass_sect. so handle accordingly, creating further encodingtable objects in the entries

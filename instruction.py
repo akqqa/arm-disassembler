@@ -174,7 +174,7 @@ class InstructionPage():
 
         for symbol in symbols:
             asm = asm.replace(symbol[0], symbol[1])
-        return asm
+        return asm.lower()
 
     # Given the tuple of values ((name, value),...), return a list of all matching aliases
     def matchAlias(self, values):
@@ -335,6 +335,7 @@ class Explanation():
         self.signed = False
         self.multipleOf = None
         self.equation = None
+        self.stackPointer = False
         # If no account, then is a table as uses definition instead
         if root.find("account") == None:
             # If the first col is size, and the last includes M:Rm, encodedIn is size:M:Rm
@@ -406,11 +407,9 @@ class Explanation():
                 # replace the symbol (in quotes), with the variable x
                 self.equation = re.sub("\".*\"", "x", match.group(1)).replace("field", "")
 
-            # REDUNDANT NOTES NEEDED IF TURNS OUT THAT THERE ARE CASES WHERE NO INTRO PRESENT FOR NON-TABLE EXPLANATIONS
-            # slightly more complex, as in cases of size:Q, only encoding, no para with "encoded in" message
-            # solution: check for para with "", if so encodedIn is in these quotes, otherwise is the encodedIn attrib :)
-            # so: search for intro then para, then get text, parse out "" if exists
-            # otherwise use encodedin attrib
+            # Check if contains a stack pointer
+            if "stack pointer" in symbolEncodingText:
+                self.stackPointer = True
 
 
     # Values is a tuple of tuples ((imm, 01001), (Rn, 1101), ...)
@@ -498,6 +497,12 @@ class Explanation():
             # Unfortunately not consistent with the non-table forms. e.g Va and Vb in SQRSHRN describe the prefix rather than require it!!
             registerPrefixTest = re.search("([WXVQDSHBZCP]|PN|ZA)[nmdtasgv]", self.symbol)
             if registerPrefixTest is not None:
+                # Handles special case of w31 or x31 referring to a zero register or stack pointer
+                if (("W" in self.symbol or "X" in self.symbol) and result == "31"):
+                    if self.stackPointer:
+                        return (self.symbol, "sp")
+                    else:
+                        result = "zr"
                 if not ("Va" in self.symbol) and not ("Vb" in self.symbol): # These were the only two outliers found
                     # Add register prefix to result
                     result = registerPrefixTest.group(1).lower() + result
@@ -539,6 +544,12 @@ class Explanation():
             # Originally simply assumed if starting with capital WXVQDSHBZCP would be a register prefix. using this, foudn the regex ([WXVQDSHBZCP]|PN)[nmdtasgv] by refining until the difference between it and the original were nonexistant
             registerPrefixTest = re.search("([WXVQDSHBZCP]|PN)[nmdtasgv]", self.symbol)
             if registerPrefixTest is not None:
+                # Handles special case of w31 or x31 referring to a zero register or stack pointer
+                if (("W" in self.symbol or "X" in self.symbol) and result == "31"):
+                    if self.stackPointer:
+                        return (self.symbol, "sp")
+                    else:
+                        result = "zr"
                 # Add register prefix to result
                 result = registerPrefixTest.group(1).lower() + result
 
