@@ -115,8 +115,6 @@ class TestAliasCondCheck(unittest.TestCase):
 
         self.assertEqual(aliasCondCheck("A == '10110' && B == '11x' && (C != '1' || D == '1xx')", values), False)
 
-    #aliasCondCheck("S == '1' && Pn == '10x' && (S != '1' || Pn == '1xx')", (("S", 1), ("Pn", "101"), ("Pm", 100)))
-
 class TestSplitWithBrackets(unittest.TestCase):
 
     # Tests that simple names are returned
@@ -163,18 +161,23 @@ class TestCalculateConcatSymbols(unittest.TestCase):
 
 class TestEvaluateEquation(unittest.TestCase):
 
+    # Tests that the evaluateEquation method correctly replaces the "x" character with the value of the variable given to it
     def testBasicValue(self):
         self.assertEqual(evaluateEquation("x", 5), 5)
 
+    # Tests that the evaluateEquation method correctly evaluates a multiplication
     def testMultiplication(self):
         self.assertEqual(evaluateEquation("x times 6", 5), 30)
 
+    # Tests that the evaluateEquation method correctly evaluates an addition
     def testAddition(self):
         self.assertEqual(evaluateEquation("x plus 6", 5), 11)
 
+    # Tests that the evaluateEquation method correctly evaluates a subtraction
     def testSubtraction(self):
         self.assertEqual(evaluateEquation("x minus 6", 5), -1)
     
+    # Tests that the evaluateEquation method correctly evaluates a modulo operation
     def testModulo(self):
         self.assertEqual(evaluateEquation("x modulo 3", 5), 2)
     
@@ -189,32 +192,41 @@ class TestEvaluateEquation(unittest.TestCase):
 
 class TestDecodeBitmaskImmediate(unittest.TestCase):
 
+    # Tests that the decodeBitmaskImmediate method correctly decodes a bitmask immediate that has no rotations
     def testRegularBitmask(self):
-        self.assertEqual(decodeBitmaskImmediate("111100000000"), "01") # 0 right rotations and 1 consecutive ones, with a size of 2.
+        self.assertEqual(decodeBitmaskImmediate("111100000000", 2), "01") # 0 right rotations and 1 consecutive ones, with a size of 2.
 
+    # Tests that the decodeBitmaskImmediate method correctly decodes a bitmask immediate that has rotations
     def testRotatedBitmask(self):
-        self.assertEqual(decodeBitmaskImmediate("111100000001"), "10") # 1 right rotation
+        self.assertEqual(decodeBitmaskImmediate("111100000001", 2), "10") # 1 right rotation
 
+    # Tests that the decodeBitmaskImmediate method correctly sizes the result based on the size passed to it
     def test32BitBitmask(self):
-        self.assertEqual(decodeBitmaskImmediate("000000000000"), "00000000000000000000000000000001") # 0 right rotations, 32 bits
+        self.assertEqual(decodeBitmaskImmediate("000000000000", 32), "00000000000000000000000000000001") # 0 right rotations, 32 bits
 
+    # Tests that the decodeBitmaskImmediate method correctly sizes the result based on the size passed to it, with rotations
     def test32BitBitmaskRotated(self):
-        self.assertEqual(decodeBitmaskImmediate("0001011000111"), "11111110000000000000000000011111") # 7 right rotations, 12 ones
+        self.assertEqual(decodeBitmaskImmediate("0001011000111", 32), "11111110000000000000000000011111") # 7 right rotations, 12 ones
     
+    # Tests that the decodeBitmaskImmediate method correctly sizes the result based on the size passed to it
     def test64BitBitmask(self):
-        self.assertEqual(decodeBitmaskImmediate("1101101111010"), "0000000000001111111111111111111111111111111111111111111111000000") # 46 ones, rotated 58 times
+        self.assertEqual(decodeBitmaskImmediate("1101101111010", 64), "0000000000001111111111111111111111111111111111111111111111000000") # 46 ones, rotated 58 times
 
+    # Tests that the decodeBitmaskImmediate method correctly returns None for bitmask immediates that are invalid
     def testInvalidBitmask(self):
-        self.assertEqual(decodeBitmaskImmediate("01010"), None)
+        self.assertEqual(decodeBitmaskImmediate("01010", 32), None)
 
 class TestTwosComplement(unittest.TestCase):
 
-    def testPositiveNubmer(self):
+    # Tests that the twosComplement method correctly converts a positive binary string into a positive integer
+    def testPositiveNumber(self):
         self.assertEqual(twosComplement("0100110000000"), 2432)
     
+    # Tests that the twosComplement method correctly converts a negative binary string into a negative integer
     def testNegativeNumber(self):
         self.assertEqual(twosComplement("1011010000000"), -2432)
 
+    # Tests that the twosComplement method treats single digits as positive
     def testSingleDigit(self):
         self.assertEqual(twosComplement("1"), 1)
 
