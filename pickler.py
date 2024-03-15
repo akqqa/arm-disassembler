@@ -10,3 +10,4 @@ if __name__ == "__main__":
     table = EncodingTable(root, hierarchy)
     file = open('data', 'wb')
     pickle.dump(table, file)
+    file.close()

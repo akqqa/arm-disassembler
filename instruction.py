@@ -7,41 +7,6 @@ import sys
 import os
 from dotenv import load_dotenv
 
-# Class for storing instruction info - based on each instructions' xml file
-# Due to nature of instructions, should have one class for the xml, then contains many objects that are classes iclass
-
-# Superclass will contain:
-# aliases
-# list of class objects
-# PERHAPS store the explanations section here too
-
-# Subclasses will contain:
-# the regdiagram as an instruction encodding?
-# the different asmtemplates based on the ecndogins
-# pseudocode
-
-# When an instructon is matched:
-# superclass goes through each class, matches the instructionMappings
-# once correct iclass found, can get an object of the correct symbols
-# use pseudocode to map symbols
-# superclass can map these to the symbols, then the asmtemplate used!
-
-#explanation class
-# created per explanation xml, stores symbol, encoded in and potentialy table
-# created by instructionpage, put into every relevant encoding
-# method to take in an encoding map, and return the symbol and value!
-
-
-# HOW TO WORK - updated
-# When an instruction is receieved to be decoded, perform the following, in the instructionpage class:
-# match the instruction class the instruction is a part of
-# get the isntruction encoding of this instruction, to extract the variables
-# match the encoding the instruction belongs to
-# get a lisdt of the variables / map or whatever it is
-# for each explanation in the encoding, use the variable map to get the correct value
-# place these values in the asmtemplate of the encoding
-# return this template with values substituted in :)
-
 # The page for an intstruction - corresponds to an xml file on a particular instruction
 class InstructionPage():
 
@@ -447,13 +412,9 @@ class Explanation():
                 if (all([compareWithXs(fst, snd) for fst, snd in zip(rowVars, matchList)])): #zips rowVars and matchList, then compares each element accounting for xs to check if the lists match
                     matchingRow = row
             if matchingRow == None:
-                print(self.enclist,file=sys.stderr)
-                print("Error: could not match the table - invalid machine code given OR unknown label present", file=sys.stderr)
-                print(values, file=sys.stderr)
-                return (self.symbol, "") # For now, just return it as empty. However, this occurs when https://developer.arm.com/documentation/ddi0602/2023-12/Base-Instructions/LDRB--register---Load-Register-Byte--register--?lang=en
-                # basically some encoding is used when option != 011, another when option == 011. This is jusut always doing the first, so error when it is 011 and nothing defined for it!
+                return (self.symbol, "") # Cannot find a matching row. This occurs when the assembly is referencing a label that this program has no knowledge about. For now, it simply gives a blank symbol.
+            
             # Once found, get the final result
-            # NOTE FINAL RESULT COULD BE OF FORM IMM5<4:1> SO TAKE THIS INTO ACCOUNT TOO
 
             # Intead of getting the last in the row, get the one that is actually the symbol - see arm-files/msr_imm.xml
             # Result is stored in the nth element, where n is the tableResultIndex constructed when the table was built

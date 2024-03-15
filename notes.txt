@@ -383,3 +383,13 @@ UXTW #0
 REMAINING BUG THAT DOESNT PREVENT WORKING, JUST DECREASES ACCURACY SLIGHTLY:
 SOME REGDIAGRAMS FOR CLASSS CAN HAVE MANY WIDE C ELEMENTS SUCH AS <C COLSPAN="2"> != 00 <\C>
 can fix this with zs and ns like with encodings, annoying that its inconsistent though..
+
+
+ENDIANNESS CONFUSION: ASK TOM:
+
+so i have equationTest.bin
+it should be little endian
+viewing the file, it is c1a69f0d
+however, with objdump, it is 0d9fa6c1, so it reverses it! changes endianness!!
+and with my program it has to reverse it too!
+so why is it big endian in the bin file?

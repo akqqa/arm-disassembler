@@ -102,12 +102,12 @@ for i in range(0, len(myLines)):
             if objdumpOperands[i] == myOperands[i]:
                 operandMatches += 1
             elif show:
-                print(objdumpLine)
-                print(myLine)
+                # print(objdumpLine)
+                # print(myLine)
                 show = False
     else:
-        print(objdumpLine)
-        print(myLine)
+        # print(objdumpLine)
+        # print(myLine)
 
 print("Total instructions: " + str(totalOpcodes))
 print("Total maching opcodes: " + str(opcodeMatches))

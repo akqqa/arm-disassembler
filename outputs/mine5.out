@@ -1,0 +1,42 @@
+LDRB  w1, [x0]
+MOVZ  w2, #1
+MVN  w2, w2, LSL #0
+AND  w1, w1, w2, LSL #0
+STRB  w1, [x0]
+RET  
+LDRB  w1, [x0]
+MOVZ  w2, #6
+MVN  w2, w2, LSL #0
+AND  w1, w1, w2, LSL #0
+STRB  w1, [x0]
+RET  
+LDRB  w1, [x0]
+AND  w1, w1, #7
+STRB  w1, [x0]
+RET  
+LDRB  w1, [x0]
+MOVZ  w2, #1
+MVN  w2, w2, LSL #0
+AND  w1, w1, w2, LSL #0
+ORR  w1, w1, #1
+STRB  w1, [x0]
+RET  
+LDRB  w3, [x0]
+AND  w1, w1, #3
+UBFM  w1, w1, #31, #30
+MOVZ  w2, #6
+MVN  w2, w2, LSL #0
+AND  w3, w3, w2, LSL #0
+ORR  w3, w3, w1, LSL #0
+STRB  w3, [x0]
+RET  
+LDRB  w3, [x0]
+MOVZ  w2, #31
+AND  w1, w1, w2, LSL #0
+UBFM  w1, w1, #29, #28
+UBFM  w2, w2, #29, #28
+MVN  w2, w2, LSL #0
+AND  w3, w3, w2, LSL #0
+ORR  w3, w3, w1, LSL #0
+STRB  w3, [x0]
+RET  

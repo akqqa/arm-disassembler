@@ -10,6 +10,7 @@ def disassemble(filename, encodingTable):
         file = open(filename, "rb")
         bs = file.read(4)
         while (bs):
+            print(bs)
             # reverse the array, for endianness
             bs = bs[::-1]
             # Convert to binary
@@ -45,15 +46,15 @@ def disassemble(filename, encodingTable):
                 instructionBytes = [addLeadingZeroes(x) for x in instructionBytes]
                 # Add all bytes, then decode the instruction
                 instruction = "".join(instructionBytes)
-                #try:
-                print(encodingTable.decode(instruction))
-                #except:
-                #    print("Error - could not translate line") # If fatal crash, worst case is instruction is not translated
+                try:
+                    print(encodingTable.decode(instruction))
+                except:
+                    print("Error - could not translate line") # If fatal crash, worst case is instruction is not translated
 
 if __name__ == "__main__":
     if (len(sys.argv) != 2):
         print("Incorrect number of arguments")
-        print("Format: python decoder.py <path_to_file>")
+        print("Format: python disassembler.py <path_to_file>")
         quit()
 
     file = open('data', 'rb')
