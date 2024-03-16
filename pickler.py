@@ -8,6 +8,6 @@ if __name__ == "__main__":
     hierarchy = root.find("hierarchy")
 
     table = EncodingTable(root, hierarchy)
-    file = open('data', 'wb')
+    file = open('data.pkl', 'wb')
     pickle.dump(table, file)
     file.close()

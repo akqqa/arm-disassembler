@@ -3,7 +3,7 @@
 import xml.etree.ElementTree as et
 import sys
 from common import *
-from instruction import *
+from disassembler import *
 import pickle
 import elftools # pip install pyelftools
 from elftools.elf.elffile import ELFFile
