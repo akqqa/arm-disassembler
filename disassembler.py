@@ -9,11 +9,28 @@ from dotenv import load_dotenv
 
 # The page for an intstruction - corresponds to an xml file on a particular instruction
 class InstructionPage():
+    """
+    The top level class of the disassembly process. Corresponds to an XML file for a particular instruction/family of instructions.
+
+    Attributes:
+        file - the file that this class represents
+        classes - a list of classes contained within this page
+        aliaslist - a list of possible aliases that this instruction can be replaced with
+        encodings - all encodings in the XML file corresponding with this instruction
+    """
 
     def __init__(self, file):
+        """
+        Initialises the class
+        Constructs InstructionClass objects for each class in the file, and attaches each explanation in the file to their respective Encodings.
+
+        :param file: the file that this class represents
+        """
+
         self.file = file # The file this class represents
         self.classes = [] # The classes contained in this page
         self.aliaslist = None # The aliaslist node of the page
+        self.encodings = []
 
         root = et.parse(file).getroot()
         #Aliases
@@ -25,14 +42,12 @@ class InstructionPage():
             # add to self.classes the InstructionClass constructed from it
             self.classes.append(InstructionClass(c))
         # Add explanations to each encoding!
-        self.encodings = []
         # Get all encodings
         for c in self.classes:
             for e in c.encodingSections:
                 self.encodings.append(e)
         explanations = root.find("explanations")
         for expXml in explanations:
-            #print(file)
             # create explanation, search all subclasses and encodings for names, append to encodings with the right names
             explanation = Explanation(expXml)
             for e in self.encodings:
@@ -41,6 +56,11 @@ class InstructionPage():
                     e.explanations.append(explanation)
 
     def matchClass(self, instString):
+        """
+        Given a binary string, finds the class that this string matches based on characteristics of each class.
+
+        :param instString: The binary string of the instruction being matched with
+        """
         for c in self.classes:
             matches = True
             description = c.instructionDescription
@@ -59,27 +79,35 @@ class InstructionPage():
             # Replaces all z's and n's with x, as already exited if invalid
             description = description.replace("Z", "x")
             description = description.replace("N", "x")
+            # Checks each value in the description, and if they dont match, return false
             for i in range(0, len(description)):
-                #print(instString[i])
                 if instString[i] == description[i] or description[i] == "x":
                     continue
                 else:
                     matches = False
             if matches:
-                return c # Will return the correct class
+                return c # Will return the correct class if all characters are equivalent
 
     def print(self):
+        """ 
+        Prints each class
+        """
         for c in self.classes:
             c.print()
 
     # Should have a diassemble method, which performs all steps in subclasses it contains to decode and disassemble a given binary instruction
     def disassemble(self, instruction):
+        """
+        Takes an instruction and passes it to each subclass within the data structure, resulting in the correct assembly language instruction for the given binary instruction
+
+        :param instruction: the machine code instruction to ddisassemble
+        """
         # First, get correct class and encoding
         iClass = self.matchClass(instruction)
         encoding = iClass.matchEncoding(instruction)
         # Get values from instructionMapping
         values = iClass.instructionMapping.assignValues(instruction)
-        # CHECK AGAINST ALIASES - IF MATCH, CREATE INSTRUCTIONPAGE FOR THE ALIAS, THEN DISSASEMBLE THAT AND RETURN WHAT IT RETURNS
+        # Check against aliases - if match, create instructionpage for the alias, then dissasemble that and return what it returns
         matchingAliases = self.matchAlias(values)
         # If any aliases match, create an instructionpage for the alias file, and disassemble that file and return that result
         # If there is an exception, try with the next alias in the list!
@@ -131,12 +159,14 @@ class InstructionPage():
                         defaultSymbols += 1
                     if symbol[0] == "<shift>" and (symbol[1] == "0" or symbol[1] == "LSL #0"):
                         defaultSymbols += 1
+            # Replace curly braces
             if defaultSymbols == symbolsInBrackets:
                 asm = re.sub("\{.*\}", "", asm)
             else:
                 asm = asm.replace("{", "")
                 asm = asm.replace("}", "")
 
+        # Replace each symbol with its corresponding value from the decodeSymbol() method
         for symbol in symbols:
             asm = asm.replace(symbol[0], symbol[1])
         return asm.lower()
@@ -387,14 +417,6 @@ class Explanation():
         if self.encodedIn == "":
             return (self.symbol, "0")
 
-        # SPECIAL CASE: https://developer.arm.com/documentation/ddi0602/2023-12/SIMD-FP-Instructions/UMOV--Unsigned-Move-vector-element-to-general-purpose-register-
-        # <row>
-        #     <entry class="bitfield">xxxx1</entry>
-        #     <entry class="symbol">imm5&lt;4:1&gt;</entry>
-        # </row>
-        # believe that imm5<4:1> is stating to get the 5th (from the end) and 2nd (from the end) bit of imm5?
-        # so do an additional check for <>'s, if so handle accordingly separate to other : splits
-
         # Search the stored table to find the mapping
         if self.table != []:
             rowLength = len(self.table[0])
@@ -498,10 +520,6 @@ class Explanation():
             if self.implicitValue is not None:
                 result = self.implicitValue
 
-            # Manually add X or W - note also V for vector? - should add a more complex check as can have V or Vd
-            # https://valsamaras.medium.com/arm-64-assembly-series-basic-definitions-and-registers-ec8cc1334e40#:~:text=The%20AArch64%20architecture%20also%20supports,(using%20b0%20to%20b31).
-            # ^ gives all possible register prefixes
-            # maybe z as well?
             # Originally simply assumed if starting with capital WXVQDSHBZCP would be a register prefix. using this, foudn the regex ([WXVQDSHBZCP]|PN)[nmdtasgv] by refining until the difference between it and the original were nonexistant
             registerPrefixTest = re.search("([WXVQDSHBZCP]|PN)[nmdtasgv]", self.symbol)
             if registerPrefixTest is not None:

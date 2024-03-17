@@ -21,6 +21,12 @@ class InstructionMapping():
         self.mappings = mappings
 
     def assignValues(self, instruction):
+        """
+        Returns a tuple in the form ((varname1, value1), (varname2, value2), ...) based on the given instruction and the mapping defined in this object
+
+        :param instruction: the instruction to extract values from
+        """
+
         values = []
         if len(instruction) != 32:
             return False
@@ -33,8 +39,14 @@ class InstructionMapping():
         return tuple(values)
 
 
-# fst contains x's, snd does not
 def compareWithXs(fst, snd):
+    """
+    Compares two binary strings to see if they are equivalent, with the rule that an 'x' in the first string can be either a 1 or 0 in the second
+
+    :param fst: the first binary string, which can contain x characters
+    :param snd: the second binary string, which cannot contain x characters
+    """
+
     if len(fst) != len(snd):
         return False
     for i in range(0, len(fst)):
@@ -49,11 +61,20 @@ def compareWithXs(fst, snd):
     return True
 
 def addLeadingZeroes(num):
+    """
+    Adds leading zeros to a given binary string to make it 8 bits long
+
+    :param num: the number to pad
+    """
     leading = "0" * (8-len(num))
     return leading + num
 
-#Helper function to output the ASM template
 def getASM(asmelement):
+    """
+    Extracts the assembly template from an XML element
+
+    :param asmelement: the element to extract the assembly template from
+    """
     output = ""
     for child in asmelement:
         output += child.text
@@ -61,8 +82,14 @@ def getASM(asmelement):
 
 # Given an alias pref string and the values of symbols, checks if the condition string is valid with the given symbols
 # Similar to the equation parsing but more complex as can have ==, !=, && and (||)
-# Likely can use a premade boolean logic library. extract all x == y or x != y, replace them with True or False, then evaluatte logically!
 def aliasCondCheck(condition, values):
+    """
+    Given an alias pref string and the values of symbols, checks if the condition string is valid with the given symbols
+    Similar to the equation parsing but more complex as can have ==, !=, && and (||)
+
+    :param condition: the string describing the condition for the alias to match, e.g 'Rm == 10010 && Rn == 101'
+    :param values: a tuple of tuples describing variables and their values extracted from the instruction being checked
+    """
 
     # Checks for never and unconditionally
     if condition == "Unconditionally":
@@ -78,8 +105,8 @@ def aliasCondCheck(condition, values):
     if "IN" in condition:
         return False
 
-    # Step 0: somehow detect if using pseudocode and dont evaluate if so, ignore these aliases
-    # Easy to detect! just check if the aliaspref contains an <a> tag inside, do this before the condcheck
+    # Step 0:  detect if using pseudocode and dont evaluate if so, ignore these aliases
+    # this is done by checking if the aliaspref contains an <a> tag inside, before this method is called
     
     # Step 1: replace all symbols with their corresponding values
     # Split by whitespace, to ensure doesnt replace part of substring with somthing. e,g a and Ra, could replace both a's
@@ -90,12 +117,11 @@ def aliasCondCheck(condition, values):
                 splitCond[i] = str(tup[1])
     condition = " ".join(splitCond)
 
-    #print(condition)
 
     # Now have a string of form 1 == 1 && 101 == 100
 
     # Step 2: extract all x ==/!= y and evaluate each
-    # Step 2.5: replace each instance of those with T or F dependeing on evaluation
+    # Step 2.5: replace each instance of those with T or F depending on evaluation
 
     equalities = re.findall("[10x\\+ ]+ (?:==|!=) [10x\\+ ]+", condition)
     #print(equalities)
@@ -118,7 +144,6 @@ def aliasCondCheck(condition, values):
             regex = "\\b" + regex + "\\b"
             regex = regex.replace("+", "\\+")
             elem = re.sub(regex, eqSum, elem)
-            #print(eqSum)
 
 
         # Evaluate the equality
@@ -142,13 +167,10 @@ def aliasCondCheck(condition, values):
         regex = "\\b" + regex + "\\b"
         condition = re.sub(regex, result, condition)
         
-    # Step 3: use a parser library to evaluate the restuling logical expression (might have to replace && with "and" and so on)
+    # Step 3: use a parser library to evaluate the resulting logical expression (have to replace && with "and" and so on)
 
     condition = condition.replace("&&", "and")
     condition = condition.replace("||", "or")
-
-    #print("CONDITION:")
-    #print(condition)
 
     evaluation = boolean.BooleanAlgebra().parse(condition).simplify()
 
@@ -157,10 +179,14 @@ def aliasCondCheck(condition, values):
     else:
         return False
 
-# Helper function to split a string by colons, not including any colons inside &lt/&rt (</>)
-# e.g imm5<4:3>:imm4<3> = [imm5<4:3>, imm4<3>]
-# Returns the symbols divided by brackets
 def splitWithBrackets(inputStr):
+    """
+    Splits a string by colons, not including any colons inside angular brackets. Returns a list of the string split by colons
+    e.g imm5<4:3>:imm4<3> = [imm5<4:3>, imm4<3>]
+
+    :param inputStr: the string to split by colons
+    """
+
     # using https://stackoverflow.com/a/15599760
     # All < must have an associated > to be well formed in the specification. Using this we can find the indices of each and only split on colons not between these
     openingIndexes = [x.start() for x in re.finditer("<", inputStr)]
@@ -168,6 +194,7 @@ def splitWithBrackets(inputStr):
     ranges = list(zip(openingIndexes, closingIndexes))
     toSplit = []
     splitList = []
+    # Constructs a list of indices that should be split on
     for i in range(0, len(inputStr)):
         char = inputStr[i]
         if char == ":":
@@ -188,11 +215,16 @@ def splitWithBrackets(inputStr):
     splitList.append(inputStr[start:])
     return splitList
 
-# Claculates the resulting value of concatendated symbols - e.g H:B:imm5 should combine the bits!
-# Could perhaps improve / fix by making it only convert if uint is present? - ACTUALLY only ever called from a uint. assumes that these will only occur when a uint is used - otherwise doesnt make sense tbf
-# Returns the bits concatenated! USES SPLITWITHBRACKETS to ensure correct splitting with <> present. can later be converted to an integer as returns binary that has been concatenated
-def calculateConcatSymbols(result, values):
-    splitResult = splitWithBrackets(result) # This is the set of things to concatenate to get the result
+def calculateConcatSymbols(inputStr, values):
+    """
+    Calculates the resulting value of concatendated symbols when given an inputString of the format imm5<4:3>:imm4<3>
+    e.g imm5<4:3>:imm4<3>, with the values imm5=101010 and imm4 = 00101, will result in 010
+
+    :param inputStr: the string to be replaced with the concatenated bit values of all variables and ranges
+    :param values: the values of variables to replace
+    """
+
+    splitResult = splitWithBrackets(inputStr) # This is the set of things to concatenate to get the result
     finalResult = ""
     for elem in splitResult: # Each elem is H, B, imm5 in H:B:imm5. can even include <>
         # Check if the element has <>
@@ -220,9 +252,16 @@ def calculateConcatSymbols(result, values):
     finalResult = finalResult.replace("'", "")
     return finalResult
 
-# Helper method to evaluate equations of the form "x times 5 plus 2 modulo 3"
-# The XML specification never contains instances of division, so not supported
 def evaluateEquation(equation, x):
+    """
+    Evaluates equations of the form 'x times 5 plus 2 modulo 3'. Each equation can have one 'x' value, which is replaced by the input variable x
+    Note: Evaluates from left to right, rather than with the normal order of operations
+    The XML specification never contains instances of division, so it is not supported
+
+    :param equation: the string of an equation of the form 'x times 5 plus 2 modulo 3'
+    :param x: the value to replace the 'x' character in the equation with
+    """
+
     try:
         # Split by whitespace
         equation = equation.split()
@@ -245,20 +284,33 @@ def evaluateEquation(equation, x):
                 result = fst % snd
             numbers.insert(0, result)
         return numbers[0]
+    # Catch errors in case of malformed equation such as not having the right number of operators or operands
     except ValueError:
         return None
     except IndexError:
         return None
 
 def rightRotateString(rotator, num):
+    """
+    Rotates a string right a given number of times
+
+    :param rotator: the string to rotate
+    :param num: the number of right rotations to perform
+    """
     # Rotate by getting the last num digits, removing them from one side, then adding them to the front
     rightEnd = rotator[len(rotator)- num:]
     rightStart = rotator[0:len(rotator) - num]
     return rightEnd + rightStart
 
-# Takes a bitmask immediate as a string, and returns the value as a number
 def decodeBitmaskImmediate(bitmask, size):
-    #Bitmask encoded as (N):imms:immr where imms and immr are 6 bits each, and N is 1
+    """
+    Given a bitmask immediate and a size, decodes the bitmask immediate into the correct bitmask pattern, and replicate it until it is a given size
+
+    :param bitmask: the bitmask value to decode
+    :param size: the size that the decoded bitmask should be
+    """
+
+    # Bitmask encoded as (N):imms:immr where imms and immr are 6 bits each, and N is 1
     # Add N character if not included in bitmask
     if len(bitmask) == 12:
         bitmask = "0" + bitmask
@@ -303,6 +355,11 @@ def decodeBitmaskImmediate(bitmask, size):
     return binaryString
 
 def twosComplement(binaryString):
+    """
+    Given a binary string, translate it into an integer with twos complement
+
+    :param binaryString: the binary string to convert into an integer
+    """
 
     # If a single digit, just convert to binary
     if len(binaryString) == 1:

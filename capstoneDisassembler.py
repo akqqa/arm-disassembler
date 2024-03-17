@@ -16,6 +16,7 @@ def disassemble(filename):
     if (filename[-4:] == ".bin"):
         file = open(filename, "rb")
         bs = file.read(4)
+        # Read every 4 bytes and use capstone to disassemble
         while (bs):
             try:
                 capstoneDisassemble(bs)
@@ -28,6 +29,7 @@ def disassemble(filename):
             elfFile = ELFFile(f)
             textSection = elfFile.get_section_by_name(".text")
             data = textSection.data()
+            # Read every 4 bytes and use capstone to disassemble
             for i in range(0, len(data), 4):
                 instructionBytes = data[i:i+4]
                 try:

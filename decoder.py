@@ -10,15 +10,23 @@ from elftools.elf.elffile import ELFFile
 
 
 class EncodingTable():
+    """
+    A table within the greater EncodingTable structure. Stores further EncodingTables or InstructionTables based on instruction variable values in a tree-like structure.
 
-    # Entries - a mapping of the variable values to either an instruction name or nested encoding table - effectively a node of the decode tree
-    # Key: a flattened map of variable names to the matching pattern
-    # Value: either an instruction name or a further encodingtable
+    Attributes:
+        entries - A mapping of the variable values to either an instruction or nested encoding table. Each key is a flattened map of variable names to the matching patterns.
+        instructionMapping - the InstructionMapping for this table, used to extract the correct variables from instructions that pass through.
+        directFile - the direct file path in the case of there only being one entry in the table.
+    """
 
-    # Initialises with xml, which starts at the root node of the encoding table that will be converted to this class
-    # instructionMapping - the instruction mapping to map variables on incoming instructions
-    # entries - the table, with keys being tuples of variable values to match, and values either being instructions or nested EncodingTables
     def __init__(self, root, hierarchy, sect=False):
+        """
+        Initialises the EncodingTable object
+
+        :param root: The root node of the encodingindex.xml file that the table is generated from
+        :param hierarchy: The node that this table is being generated from
+        :param sect: Whether this table is representing an iclass_sect or node
+        """
         self.entries = {}
         self.instructionMapping = None
         self.directFile = None # Used only in cases where an iclass_sect has no table and is just one instruction name
@@ -105,6 +113,9 @@ class EncodingTable():
                         self.entries[tuple(mapping)] = node.attrib["iclass"]
 
     def print(self):
+        """
+        Prints the encoding table
+        """
         print(len(self.entries.values()))
         for entry in self.entries.values():
             print(entry)
@@ -114,6 +125,11 @@ class EncodingTable():
                 entry.print()
 
     def decode(self, instruction):
+        """
+        Given an instruction, decode it by finding the correct entry in the entires attribute, and passing it down to further levels of the table. If the correct instruction is found, disassemble it and return the disassembled instruction.
+
+        :param instruction: The instruction to disassemble
+        """
         # Extract variables from the instruction
         values = self.instructionMapping.assignValues(instruction)
 
@@ -128,7 +144,6 @@ class EncodingTable():
                 return self.directFile
         
 
-        # Rules: patterns match if 1's and 0's match exactly, or != applies
         # For each row of the encoding table, checks if each variable assignment of the row matches a variable in the instruction being matched
         for row in self.entries.keys():
             matches = True
@@ -147,10 +162,13 @@ class EncodingTable():
                     return self.entries[row]
         return None
 
-    # vars = all variables and their values extracted from the endcoding
-    # tup = a single tuple (variable name, value)
-    # This method finds if the variable with the same name as this tuple has the same values
     def matchVar(self, vars, tup):
+        """
+        Finds if the variable with the same name as the given tuple has the same value. Accounts for != symbols declaring portions of the value should NOT be the same.
+
+        :param vars: all variables and their extracted values from the InstructionMapping
+        :param tup: a single (variable name, value) tuple, which will be checked to see if it matches a variable in vars
+        """
         # Check each var
         for var in vars:
             if var[0] == tup[0]:
