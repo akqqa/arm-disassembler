@@ -173,10 +173,15 @@ class InstructionPage():
 
     # Given the tuple of values ((name, value),...), return a list of all matching aliases
     def matchAlias(self, values):
+        """
+        Given a tuple of values ((name, value),...), return a list of all matching aliases based on the condiitons within the aliaslist of this class
+        
+        :param values: the variables and values of each to use to check which alias conditions match
+        """
         aliases = []
         if self.aliaslist is not None:
             aliasrefs = self.aliaslist.findall("aliasref")
-            #print(self.file)
+            # Iterates through all possible aliases
             for aliasref in aliasrefs:
                 aliasprefs = aliasref.findall("aliaspref")
                 if aliasprefs is not None:
@@ -185,6 +190,7 @@ class InstructionPage():
                         anchor = aliaspref.find("a")
                         if anchor is not None:
                             continue
+                        # If the condition matches the values, append to the list that is returned
                         if aliaspref.text is not None:
                             if aliasCondCheck(aliaspref.text, values):
                                 aliases.append(aliasref) 
@@ -281,7 +287,7 @@ class InstructionClass():
         print(self.root.attrib["name"])
         print(self.instructionDescription)
 
-# Contains infor to match encodiong within a class, as well as the asmtemplate matching
+# Contains info to match encodiong within a class, as well as the asmtemplate matching
 class EncodingDetails():
     
     def __init__(self, root):
