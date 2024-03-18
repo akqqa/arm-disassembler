@@ -4,12 +4,16 @@ import html
 import boolean
 import sys
 
-ARM_FILE_PATH = "arm-files"
+ARM_FILE_PATH = "arm-files" # The name of the directory that contains the arm specification. Can be modified
 
-# Class to store the variable mapping of a binary instruction
-# Starts by being given the variable lengths and positions upon instantiation, then can be fed an actual binary string, where it will assign the variables to their actual values
-# Perhaps change this to simply return the values dict, instead of tying it inherently to the object for better representation of what is actually being done
 class InstructionMapping():
+    """
+    Class to store the variable mapping of a binary instruction
+    Starts by being given the variable lengths and positions upon instantiation, then can be fed an actual binary string, where it will assign the variables to their actual values
+    
+    Attributes:
+        mappings - the names of each variable as well as the range of bits the variable spans
+    """
 
     # Default example mapping - [start position, length(inclusive)]
     mappings = {
@@ -18,6 +22,11 @@ class InstructionMapping():
     }
 
     def __init__(self, mappings=mappings):
+        """
+        Initialiases the class
+
+        :param mappings: the mapping to use when assigning values for instructions
+        """
         self.mappings = mappings
 
     def assignValues(self, instruction):

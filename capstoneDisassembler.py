@@ -5,14 +5,27 @@ from common import *
 import elftools
 from elftools.elf.elffile import ELFFile
 
-# Code snippet adapted directly from https://www.capstone-engine.org/lang_python.html
 def capstoneDisassemble(line):
+    """
+    Disassembles a line of machine code using the Capstone API
+
+    :param line: the line of machine code to disassemble
+    """
+
+    # Code snippet adapted directly from https://www.capstone-engine.org/lang_python.html
     md = Cs(CS_ARCH_ARM64, CS_MODE_ARM)
     for i in md.disasm(line, 0):
         print("%s\t%s" %(i.mnemonic, i.op_str))
 
 # Add check for less than 4 bytes read!
 def disassemble(filename):
+    """
+    Disassembles a given machine code file
+
+    :param filename: the file to disassemble
+    """
+
+    # Checks if file is binary or elf
     if (filename[-4:] == ".bin"):
         file = open(filename, "rb")
         bs = file.read(4)
@@ -24,7 +37,6 @@ def disassemble(filename):
                 print("Error - could not translate line") # If fatal crash, worst case is instruction is not translated
             bs = file.read(4)
     elif (filename[-4:] == ".elf"):
-        # Will likely have to check whether the file is big or little endian
         with open(filename, "rb") as f:
             elfFile = ELFFile(f)
             textSection = elfFile.get_section_by_name(".text")
@@ -43,4 +55,5 @@ if __name__ == "__main__":
         print("Format: python capstoneDisassembler.py <path_to_file>")
         quit()
 
+    # Disassemble the given file using Capstone
     disassemble(sys.argv[1])

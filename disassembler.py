@@ -7,7 +7,6 @@ import sys
 import os
 from dotenv import load_dotenv
 
-# The page for an intstruction - corresponds to an xml file on a particular instruction
 class InstructionPage():
     """
     The top level class of the disassembly process. Corresponds to an XML file for a particular instruction/family of instructions.
@@ -95,7 +94,6 @@ class InstructionPage():
         for c in self.classes:
             c.print()
 
-    # Should have a diassemble method, which performs all steps in subclasses it contains to decode and disassemble a given binary instruction
     def disassemble(self, instruction):
         """
         Takes an instruction and passes it to each subclass within the data structure, resulting in the correct assembly language instruction for the given binary instruction
@@ -135,7 +133,6 @@ class InstructionPage():
         # If a bracketed section is found, and at least one of the symbols is non default, we keep this section
         matches = re.search("\{.*\}", asm)
         if matches:
-            #print(matches.group(0))
             defaultSymbols = 0
             symbolsInBrackets = 0
             bracketed = matches.group(0)
@@ -171,7 +168,6 @@ class InstructionPage():
             asm = asm.replace(symbol[0], symbol[1])
         return asm.lower()
 
-    # Given the tuple of values ((name, value),...), return a list of all matching aliases
     def matchAlias(self, values):
         """
         Given a tuple of values ((name, value),...), return a list of all matching aliases based on the condiitons within the aliaslist of this class
@@ -197,11 +193,25 @@ class InstructionPage():
         return aliases
 
 
-# The class of an instruction - corresponds to each individual iclass in an xml file
 class InstructionClass():
+    """
+    The class representing an individual instruction. Corresponds to each individual iclass in an XML file
+
+    Attributes:
+        root - the root of the iclass xml element being converted into this class
+        instructionDescription - a string that describes the bit-pattern that this instruction matches. Used when comparing to an instruction to disassemble
+        instructionMapping - the InstructionMapping used to extract variable values from any instructions being disassembled
+        encodingSections - the possible encodings for this instruction, as a list of Encoding objects
+    """
 
     def __init__(self, root):
-        # Parse the regdiagram. Creating an instruction mapping for mapping variables, as well as an Instruction description to match instructions with the right class
+        """
+        Initialises the class
+        Parses the regdiagram. Creating an instruction mapping for mapping variables, as well as an Instruction description to match instructions with the right class
+        
+        :param root: the root of the iclass xml element being converted into this class
+        """
+
         self.root = root
         self.instructionDescription = "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx" # Will result in a string that matches the given instruction
         self.instructionMapping = None # The mapping of the instruction - a.k.a the variables derived from the description
@@ -220,7 +230,7 @@ class InstructionClass():
                 else:
                     varWidth = 1 #For some reason doesnt declare 1 width if the width is 1
                 variables[box.attrib["name"]] = [int(box.attrib["hibit"]), int(varWidth)]
-            # Instruction form logic - ACCOUNTS FOR != WITH LARGER COLSPANS
+            # Instruction form logic - accounts for != with larger colspans
             if "settings" in box.attrib:
                 index = 31 - int(box.attrib["hibit"])
                 # Create a string corresponding to the digits in this box
@@ -253,6 +263,12 @@ class InstructionClass():
             self.encodingSections.append(EncodingDetails(e))
 
     def matchEncoding(self, instString):
+        """
+        Given an instruction, returns the correct encoding that corresponds to it
+
+        :param instString: the binary string of the instruction to find the encoding for
+        """
+
         # For each encoding, check if the encodingDescription matches the instString!
         # Must account for ZNN strings
         for e in self.encodingSections:
@@ -284,13 +300,29 @@ class InstructionClass():
 
 
     def print(self):
+        """
+        Prints information about the encoding
+        """
         print(self.root.attrib["name"])
         print(self.instructionDescription)
 
-# Contains info to match encodiong within a class, as well as the asmtemplate matching
 class EncodingDetails():
+    """
+    A class to store the information about an encoding of an instruction. 
+
+    Attributes:
+        explanations - a list of the explanations that are required in order to replace the symbols in the corresponding assembly template with the correct values
+        asmTemplate - the assembly template associated with this encoding
+        name - the name of this encoding (for debugging purposes)
+        encodingDescription - a string that describes the bit-pattern that this encoding matches. Used when comparing to an instruction to disassemble
+    """
     
     def __init__(self, root):
+        """
+        Creates the class
+
+        :param root: - the root xml element of the encoding being used
+        """
         # Create encodingDescription similar to instructionDescription in above class
         self.explanations = [] # List of explanations needed to fill the asm template
         self.asmTemplate = None # The asm template associated with this encoding
@@ -298,6 +330,7 @@ class EncodingDetails():
         boxes = root.findall("box")
         self.encodingDescription = "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx" # The format of the instruction this encoding matches
 
+        # Formats the encodingDescription 
         for box in boxes:
             if "name" in box.attrib:
                 index = 31 - int(box.attrib["hibit"])
@@ -316,17 +349,34 @@ class EncodingDetails():
 
 
         self.asmTemplate = getASM(root.find("asmtemplate"))
-        #print(self.encodingDescription)
         return
 
-
-
-# Class to store each explanation. Has a symbol, encodedin, and potentially a table.
-# give a method that takes in an encoding map, and returns the correct symbol and value!
 class Explanation():
+    """
+    Class to store each explanation given in the XML files. An explanation is a description of how to retrieve the value of a specific symbol from an instruction for the assembly template
 
-    # Here, root is <explanation>
+    Attributes:
+        enclist - the list of encodings that this explanation is for
+        symbol - the symbol that this explanation is for
+        table - the table that the explanation might be formatted as
+        encodedIn - the variables of the instruction that this symbol is encoded with
+        bitmaskImmediate - whether this explanation is encoded as a bitmask immediate
+        bitmaskSize - the size of the bitmask immediate (if applicable)
+        implicitValue - the implict value of this explanation if one is given
+        signed - whether this explanation is for a signed integer
+        multipleOf - if this explanation requires a multiplcation, the value to multiply by
+        equation - if this explanation contains an equation, the equation to use to get the symbols value
+        stackPoints - whether this symbol is referring to a stack pointer instead of a regular register
+    """
+
     def __init__(self, root):
+        """
+        Creates the class
+        Determines whether the explanation is encoded in a table or text. If a table, constructs that table as a 2d array. If text, parses the text to extract relevant information to be used when decoding
+
+        :param root: the root xml element of the explanation used to create this class
+        """
+
         self.enclist = root.attrib["enclist"].replace(" ", "").split(",")
         self.symbol = root.find("symbol").text
         self.table = []
@@ -337,22 +387,23 @@ class Explanation():
         self.multipleOf = None
         self.equation = None
         self.stackPointer = False
-        # If no account, then is a table as uses definition instead
+        # If no account, then is a table as non-tables use definition instead
         if root.find("account") == None:
             # If the first col is size, and the last includes M:Rm, encodedIn is size:M:Rm
             self.encodedIn = html.unescape(root.find("definition").attrib["encodedin"])
-            # From reading over various xml files, gathered that tables always use encodedIn, if find something contrary, adjust as in the account version below
 
             # create table - row by row as a 2d array in self.table
             tableRoot = root.find("definition").find("table")
             tableHead = tableRoot.find("tgroup").find("thead")
             headEntries = tableHead.find("row").findall("entry")
             currentRow = []
+            # Create header row
             for entry in headEntries:
                 currentRow.append(entry.text)
             self.table.append(currentRow)
             tableBody = tableRoot.find("tgroup").find("tbody")
             rows = tableBody.findall("row")
+            # Create each row of the table from the xml
             for row in rows:
                 currentRow = []
                 entries = row.findall("entry")
@@ -365,10 +416,8 @@ class Explanation():
                 if headEntries[i].attrib["class"] == "symbol":
                     self.tableResultIndex = i
                     break # line 221 of msr_imm.xml has an error where architectural features should be class feature not symbol, but in any case, default to the first symbol
+        # Not a table, so parse the text
         else:
-            # UNFORTUNATELY - as seen in umov_advsimd.xml under index, encodedin can give the wrong thing, in the case of e.g subindexing the endcoded in, as it is only given in para. must instead parse para for it when no table
-            # luckily, this is just found by what is in the "" in the para
-            #self.encodedIn = root.find("account").attrib["encodedin"]
             # Uses https://stackoverflow.com/a/11122355 for getting quote indices
             symbolEncodingText = root.find("account").find("intro").find("para").text
             # Check if bitmask immediate - -usually says "bitmask immediate", but in some cases such as eor_z_zi_ it just has "bitmask"
@@ -412,18 +461,17 @@ class Explanation():
             if "stack pointer" in symbolEncodingText:
                 self.stackPointer = True
 
-
-    # Values is a tuple of tuples ((imm, 01001), (Rn, 1101), ...)
-    # Returns a tuple - (the symbol the value has been found for, and the resulting value)
-
-    # explanation on calculateconcat vs splitwithbrackets. if not in a table, never uses uint as it is implied to be converted to numbers always. therefore can just straight split based on colons
-    # however, tables use both alphanumeric values AND unit conversions depending on the table values, so this uses splitwithbrackets
     def decodeSymbol(self, values):
+        """
+        Takes a list of values, and from this calculates what this classes' symbol should be replaced with. Returns a tuple of the form 
+
+        :param values: a tuple of tuples the same format output by the InstructionMapping class
+        """
         # special case for mova on 128 bits, return 0 for an encoding of ""
         if self.encodedIn == "":
             return (self.symbol, "0")
 
-        # Search the stored table to find the mapping
+        # If the explanation uses a table, search the stored table to find the mapping
         if self.table != []:
             rowLength = len(self.table[0])
             values = list(values)
@@ -448,21 +496,16 @@ class Explanation():
             # Result is stored in the nth element, where n is the tableResultIndex constructed when the table was built
             result = matchingRow[self.tableResultIndex]
 
-            # Handle things such as H<4:3>:imm4. Unlike in non-table, sometimes doesnt convert to integers
+            # Handle things such as H<4:3>:imm4. Unlike in non-table, sometimes doesnt convert to integers, therefore uses the UInt method.
             if "UInt(" in result:
                 # Finds all UInt() sections in the asm, and handles their inner elements, replacing them with the final value
                 functions = re.finditer("UInt\\((.*)\\)", result)
                 # If none, just caclulateConcatSymbols normally, as can assume its across the whole element
                 for m in functions:
-                    replacement = calculateConcatSymbols(m.group(1), values) # ONLY DOES THIS IN TABLE AS IN NON-TABLE IT ALWAYS JUST TREATS IT AS separated by brackets. this assumes that 
+                    replacement = calculateConcatSymbols(m.group(1), values) # Only does this in a table as in non-table it always treats it as separated by brackets.
                     # Convert to decimal if possible
                     replacement = str(int(replacement, 2))
                     result = result.replace(m.group(0), replacement)
-            #else: # Otherwise assumes the whole string is able to be split by colons - IF DOES THIS, ERROR WHEN USING A SYMBOL THAT ISNT CONVERTED TO ITS INT LIKE 1 AND H
-            # why? because calculate concat symbols assumes that the H is the value of the variable, rather than simply the character "H". 
-            # Simply have to make the assumption that colons will only be used in tables if integers, otherwise it makes zero sense. why would you say "H:B:S" instead of HBS?
-            # and if you want H + the value imm4 you can do H:Uint(imm4). NON-TABLE ALWAYS ASSUMES CONVERSION TO NUMBERS, TABLE IS USED WHEN NOT NUMBERS - TAHTS THE WHOLE POINT
-                #result = calculateConcatSymbols(result, values)
 
             # Account for #uimm5 and #uimm4 referring to their own pattern
             # Assumptions : always uimm4 or uimm5, and only has one other row in the table
@@ -483,7 +526,7 @@ class Explanation():
             if subtraction is not None:
                 result = str(int(subtraction.group(1)) - int(subtraction.group(2)))
 
-            # Unfortunately not consistent with the non-table forms. e.g Va and Vb in SQRSHRN describe the prefix rather than require it!!
+            # Checks the prefix of the symbol to tell if it requires a register prefix or not
             registerPrefixTest = re.search("([WXVQDSHBZCP]|PN|ZA)[nmdtasgv]", self.symbol)
             if registerPrefixTest is not None:
                 # Handles special case of w31 or x31 referring to a zero register or stack pointer
@@ -492,17 +535,17 @@ class Explanation():
                         return (self.symbol, "sp")
                     else:
                         result = "zr"
-                if not ("Va" in self.symbol) and not ("Vb" in self.symbol): # These were the only two outliers found
+                if not ("Va" in self.symbol) and not ("Vb" in self.symbol): # These were the only two outliers found for tables compared to text encodings
                     # Add register prefix to result
                     result = registerPrefixTest.group(1).lower() + result
                 return (self.symbol, result)
-            
-        
+
             return (self.symbol, result)
+
         # If no table, simply find the variable the symbol is encoded in, and return this (taking into account indexing with <> after symbol)
         else:
             result = ""
-            result = calculateConcatSymbols(self.encodedIn, values)
+            result = calculateConcatSymbols(self.encodedIn, values) # Calculates the base value from the variables that it is encoded in
 
             # Check if bitmask immediate, and if so decode the result as a bitmask immediate
             if self.bitmaskImmediate:
@@ -539,17 +582,3 @@ class Explanation():
                 result = registerPrefixTest.group(1).lower() + result
 
             return (self.symbol, result)
-
-
-if __name__ == "__main__":
-    print(splitWithBrackets("imm5<4:3>:imm4<3>"))
-    print(calculateConcatSymbols("imm5<4:3>:imm4<3>", [("imm5", "111111"), ("imm4", "1111111")]))
-    match = re.search("encoded as (.*)\.", "this is encoded as \"rx\" plus 2 times 5.")
-    print(match[1])
-    print(evaluateEquation(re.sub("\".*\"", "x", "\"rx\" plus 5 minus 4").replace("field", ""), 8))
-    # i1 = InstructionPage("arm-files/abs.xml")
-    # instruction = "11011010110000000010001010010110"
-    # print(i1.matchClass(instruction).matchEncoding(instruction).explanations[0].symbol)
-    # print(i1.disassemble(instruction))
-    print(aliasCondCheck("S == '1' && Pn == '10x' && (S != '1' || Pn == '1xx')", (("S", 1), ("Pn", "101"), ("Pm", 100))))
-    print((boolean.BooleanAlgebra().parse("TRUE and TRUE AND ( FALSE or TRUE )")).simplify())

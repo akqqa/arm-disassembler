@@ -1,13 +1,12 @@
 import re
-# WITH V'S AND Z'S IT CAN HAVE THINGS SUCH AS {Z20.D-Z22.D} TO MEAN Z20.D, Z21.D, Z22.D ETC.
-# TRANSFORM THIS WITH REGER WHENEVER ENCOUNTERED
 
-# Also, need to convert 0x hex into decimal
-# need to convert all white space to single spaces - in fact remove all whitespace in the operands!
-# need to treat cases as the same - everything is tolower
-
-# output we want to verify starts in line 8 of the objdump file
 def transformObjdumpLine(line):
+    """
+    Normalises a line of objdump disassembly to be accurately compared to this projects output
+
+    :param line: the line to transform
+    """
+
     line = line.replace("\t", " ")
     # Remove the first 20 characters as these are not relevant
     line = line[20:]
@@ -51,6 +50,11 @@ def transformObjdumpLine(line):
     return line.lower()
 
 def transformMyLine(line):
+    """
+    Normalises a line of this projects disassembly to be accurately compared to objdump
+
+    :param line: the line to transform
+    """
     line = line.lower()
     line = re.sub("\s+", " ", line)
 
@@ -60,7 +64,8 @@ objdumpFile = open("objdump.out", "r")
 lines = objdumpFile.readlines()
 objdumpFile.close()
 
-objdumpLines = lines[7:] # Removes unnecessary starting lines
+# output we want to verify starts in line 8 of the objdump file
+objdumpLines = lines[7:]
 
 myFile = open("myOutput.out", "r")
 myLines = myFile.readlines()
@@ -78,6 +83,7 @@ opcodeMatches = 0
 totalOperands = 0
 operandMatches = 0
 
+# Compares each line
 for i in range(0, len(myLines)):
     objdumpLine = transformObjdumpLine(objdumpLines[i])
     myLine = transformMyLine(myLines[i])
@@ -102,13 +108,10 @@ for i in range(0, len(myLines)):
             if objdumpOperands[i] == myOperands[i]:
                 operandMatches += 1
             elif show:
-                # print(objdumpLine)
-                # print(myLine)
                 show = False
-    else:
-        # print(objdumpLine)
-        # print(myLine)
+            
 
+# Output Results
 print("Total instructions: " + str(totalOpcodes))
 print("Total maching opcodes: " + str(opcodeMatches))
 print("Percentage of opcodes correctly translated: " + str(100 * float(opcodeMatches) / float(totalOpcodes)) + "%")

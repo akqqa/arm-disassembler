@@ -6,9 +6,18 @@ from elftools.elf.elffile import ELFFile
 
 # Add check for less than 4 bytes read!
 def disassemble(filename, encodingTable):
+    """
+    Disassembles a given machine code file
+
+    :param filename: the file to disassemble
+    :param encodingTable: the root node of the encodingTable, which gives access to the entire data structure used to encode the Arm Specification
+    """
+
+    # Checks file extension and handles it accordingly
     if (filename[-4:] == ".bin"):
         file = open(filename, "rb")
         bs = file.read(4)
+        # For each 32-bit/4-byte instruction in the file
         while (bs):
             print(bs)
             # reverse the array, for endianness
@@ -27,13 +36,11 @@ def disassemble(filename, encodingTable):
                 print("Error - could not translate line") # If fatal crash, worst case is instruction is not translated
             bs = file.read(4)
     elif (filename[-4:] == ".elf"):
-        # Will likely have to check whether the file is big or little endian
         with open(filename, "rb") as f:
             elfFile = ELFFile(f)
             textSection = elfFile.get_section_by_name(".text")
             data = textSection.data()
-            # Iterate over ever 4 bytes of the byte array to get each instruction and decode it
-            # Get the next 4 bytes of the data
+            # For each 32-bit/4-byte instruction in the file
             for i in range(0, len(data), 4):
                 instructionBytes = data[i:i+4]
                 # reverse the array, for endianness
@@ -52,13 +59,15 @@ def disassemble(filename, encodingTable):
                     print("Error - could not translate line") # If fatal crash, worst case is instruction is not translated
 
 if __name__ == "__main__":
+
     if (len(sys.argv) != 2):
         print("Incorrect number of arguments")
         print("Format: python disassembler.py <path_to_file>")
         quit()
 
+    # Unpickle the previously created data structure that represents the Arm Specification
     file = open('data.pkl', 'rb')
     table = pickle.load(file)
-    #print(table.matchVar((("hi", "00101"), ("no", "10101")), ("hi", "00 != 00x")))
 
+    # Start the disassembly process
     disassemble(sys.argv[1], table)
