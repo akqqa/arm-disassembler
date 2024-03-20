@@ -1,3 +1,5 @@
+# A script to compare this project to objdump to judge accuracy
+
 import re
 
 def transformObjdumpLine(line):

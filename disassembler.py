@@ -1,3 +1,5 @@
+# A file containing all classes required to create the data structures that allow for disassembly based on the Arm Specification
+
 from common import *
 import xml.etree.ElementTree as et
 import re

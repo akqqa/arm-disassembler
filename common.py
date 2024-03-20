@@ -1,3 +1,5 @@
+# A file containing common and helper methods for other files in this module
+
 import xml.etree.ElementTree as et
 import re
 import html

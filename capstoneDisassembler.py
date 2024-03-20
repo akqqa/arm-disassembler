@@ -1,3 +1,5 @@
+# A script to disassemble a given file using the Capstone Library
+
 from capstone import *
 import sys
 import pickle

@@ -1,4 +1,5 @@
-# Saves the instruction data to a file for quick deserialization
+# A script to save the generated data structures to a file for quick deserialization
+
 from decoder import *
 import pickle
 

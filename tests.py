@@ -1,3 +1,5 @@
+# A file containing unit tests for this module
+
 import unittest
 from common import *
 

@@ -1,3 +1,5 @@
+# A file to run the disassembler on a given file
+
 import sys
 import pickle
 from common import *

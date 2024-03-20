@@ -1,4 +1,4 @@
-# Decodes the machine code based on a given specification
+# A file containing all classes required to create the data structures that allow for decoding instructions based on the Arm Specification
 
 import xml.etree.ElementTree as et
 import sys
