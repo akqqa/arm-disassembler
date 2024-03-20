@@ -1,3 +1,5 @@
+/* From https://binary.ninja/blog/images/test_cases.txt  - transformed to directly encode the instructions hex values to ensure correct assembly */
+
 .word 0x13077CF5
 .word 0x131E7CAF
 .word 0x130E7E28

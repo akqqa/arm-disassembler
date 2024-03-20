@@ -1,4 +1,5 @@
-/*https://github.com/pkivolowitz/asm_book/blob/main/section_3/bitfields/naive.s*/ 
+/* From https://github.com/pkivolowitz/asm_book/blob/main/section_3/bitfields/naive.s*/ 
+
         .global SetA
         .global SetB
         .global SetC

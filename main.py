@@ -19,7 +19,6 @@ def disassemble(filename, encodingTable):
         bs = file.read(4)
         # For each 32-bit/4-byte instruction in the file
         while (bs):
-            print(bs)
             # reverse the array, for endianness
             bs = bs[::-1]
             # Convert to binary
