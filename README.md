@@ -3,7 +3,7 @@ CS4099 Project - A program to disassemble arm instructions given the official sp
 
 How to run:
 
-First, ensure that this directory contains a folder called arm-files, containing the official Arm MRS for the A64 Instruction Set
+First, ensure that this directory contains a folder called arm-files, containing the official Arm MRS for the A64 Instruction Set. The 2023-12 version of these files comes zipped with these files, and should be extracted.
 
 1. Run the command "pip install -r requirements.txt"
 2. Generate and store the data structure required for disassembling by running the command "python pickler.py". This should create a file named "data.pkl"
