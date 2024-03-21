@@ -50,6 +50,6 @@ This will display the accuracy of this project compared to objdump
 
 Using the cross-binutils package, the follow commands can be used to compile .S files into .bin and .elf files
 
-1. Run "aarch64-linux-gnu-gcc -c -march=armv9-a+fp16+fp+simd+sve+lse+rdma+fp16fml+rcpc+dotprod+aes+sha2+sha3+sm4+profile+rng+memtag+sb+ssbs+predres+sve2+sve2-bitperm+sve2-sm4+sve2-aes+sve2-sha3+tme+i8mm+f32mm+f64mm+bf16+ls64+mops+flagm+pauth -o <file>.o <file>.S"
-2. For an ELF file, run "aarch64-linux-gnu-gcc -o <file>.elf <file>.o -nostartfiles -nostdlib -lgcc"
-3. For a bin file, run "aarch64-linux-gnu-objcopy -O binary --only-section=.text <file>.o <file>.bin"
+1. Run "aarch64-linux-gnu-gcc -c -march=armv9-a+fp16+fp+simd+sve+lse+rdma+fp16fml+rcpc+dotprod+aes+sha2+sha3+sm4+profile+rng+memtag+sb+ssbs+predres+sve2+sve2-bitperm+sve2-sm4+sve2-aes+sve2-sha3+tme+i8mm+f32mm+f64mm+bf16+ls64+mops+flagm+pauth -o [file].o [file].S"
+2. For an ELF file, run "aarch64-linux-gnu-gcc -o [file].elf [file].o -nostartfiles -nostdlib -lgcc"
+3. For a bin file, run "aarch64-linux-gnu-objcopy -O binary --only-section=.text [file].o [file].bin"
