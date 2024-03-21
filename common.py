@@ -46,7 +46,6 @@ class InstructionMapping():
             end = start + self.mappings[var][1]
             value = instruction[start:end]
             values.append((var, value))
-        #print("values: " + str(values))
         return tuple(values)
 
 
@@ -133,10 +132,8 @@ def aliasCondCheck(condition, values):
     # Step 2.5: replace each instance of those with T or F depending on evaluation
 
     equalities = re.findall("[10x\\+ ]+ (?:==|!=) [10x\\+ ]+", condition)
-    #print(equalities)
     for elem in equalities:
         originalElem = elem
-        #print(originalElem)
         # Additional handling of the rare + - grep ensured there are no instances of other operators!
         addition = re.findall("[10]+ \\+ [10]+", elem)
         for eq in addition:
@@ -158,7 +155,6 @@ def aliasCondCheck(condition, values):
         # Evaluate the equality
         elem = elem.strip()
         splitElem = elem.split(" ")
-        #print(splitElem)
         comparison = compareWithXs(splitElem[2], splitElem[0])
 
         if splitElem[1] == "==":
