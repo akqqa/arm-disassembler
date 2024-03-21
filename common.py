@@ -91,8 +91,6 @@ def getASM(asmelement):
         output += child.text
     return output
 
-# Given an alias pref string and the values of symbols, checks if the condition string is valid with the given symbols
-# Similar to the equation parsing but more complex as can have ==, !=, && and (||)
 def aliasCondCheck(condition, values):
     """
     Given an alias pref string and the values of symbols, checks if the condition string is valid with the given symbols

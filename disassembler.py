@@ -368,7 +368,7 @@ class Explanation():
         signed - whether this explanation is for a signed integer
         multipleOf - if this explanation requires a multiplcation, the value to multiply by
         equation - if this explanation contains an equation, the equation to use to get the symbols value
-        stackPoints - whether this symbol is referring to a stack pointer instead of a regular register
+        stackPointer - whether this symbol is referring to a stack pointer instead of a regular register
     """
 
     def __init__(self, root):
@@ -420,7 +420,6 @@ class Explanation():
                     break # line 221 of msr_imm.xml has an error where architectural features should be class feature not symbol, but in any case, default to the first symbol
         # Not a table, so parse the text
         else:
-            # Uses https://stackoverflow.com/a/11122355 for getting quote indices
             symbolEncodingText = root.find("account").find("intro").find("para").text
             # Check if bitmask immediate - -usually says "bitmask immediate", but in some cases such as eor_z_zi_ it just has "bitmask"
             if "bitmask" in symbolEncodingText:
@@ -444,7 +443,9 @@ class Explanation():
             elif divide is not None:
                 self.multipleOf = int(divide.group(1))
 
+            # Uses https://stackoverflow.com/a/11122355 for getting quote indices
             quoteIndicies = [i for i, ltr in enumerate(symbolEncodingText) if ltr == "\""]
+            
             # Further special case if no encoding - for not just assume it will always be zero - case fo the mova.. instructions for 128 bits
             # this was originally erroneously made to ignore encodedIn. possibly due to an issue with the xml formatting not sensing multiple " in text. preferred fallback is to the encodedin.
             if len(quoteIndicies) != 2:

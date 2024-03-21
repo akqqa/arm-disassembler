@@ -3,7 +3,7 @@
 import sys
 import pickle
 from common import *
-import elftools # pip install pyelftools
+import elftools
 from elftools.elf.elffile import ELFFile
 
 # Add check for less than 4 bytes read!
