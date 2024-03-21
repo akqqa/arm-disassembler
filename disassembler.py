@@ -7,7 +7,6 @@ import html
 import boolean
 import sys
 import os
-from dotenv import load_dotenv
 
 class InstructionPage():
     """
