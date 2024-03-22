@@ -4,6 +4,7 @@ CS4099 Project - A program to disassemble arm instructions given the official sp
 ## How to run:
 
 First, ensure that this directory contains a folder called arm-files, containing the official Arm MRS for the A64 Instruction Set. The 2023-12 version of these files comes zipped with these files, and should be extracted.
+Please note that the unzipped folder may contain another folder named “arm-files”. If so, move this folder into the src/ directory. The contents of the folder should directly be various xml files
 
 1. Run the command "pip install -r requirements.txt"
 2. Generate and store the data structure required for disassembling by running the command "python pickler.py". This should create a file named "data.pkl"
@@ -26,6 +27,8 @@ This will display the accuracy of this project compared to objdump
 
 
 ## Files:
+- arm-files.zip - the 2023-12 release of the Arm A64 Instruction Set Architecture Specification, included in case it is no longer available from https://developer.arm.com/Architectures/A-Profile%20Architecture#Software-Download
+
 - capstoneDisassembler.py - the implementation of Capstone in Python, used to compare performance with this project.
 
 - common.py - the common and helper methods used by other files throughout the project.
@@ -50,6 +53,6 @@ This will display the accuracy of this project compared to objdump
 
 Using the cross-binutils package, the follow commands can be used to compile .S files into .bin and .elf files
 
-1. Run "aarch64-linux-gnu-gcc -c -march=armv9-a+fp16+fp+simd+sve+lse+rdma+fp16fml+rcpc+dotprod+aes+sha2+sha3+sm4+profile+rng+memtag+sb+ssbs+predres+sve2+sve2-bitperm+sve2-sm4+sve2-aes+sve2-sha3+tme+i8mm+f32mm+f64mm+bf16+ls64+mops+flagm+pauth -o <file>.o <file>.S"
-2. For an ELF file, run "aarch64-linux-gnu-gcc -o <file>.elf <file>.o -nostartfiles -nostdlib -lgcc"
-3. For a bin file, run "aarch64-linux-gnu-objcopy -O binary --only-section=.text <file>.o <file>.bin"
+1. Run "aarch64-linux-gnu-gcc -c -march=armv9-a+fp16+fp+simd+sve+lse+rdma+fp16fml+rcpc+dotprod+aes+sha2+sha3+sm4+profile+rng+memtag+sb+ssbs+predres+sve2+sve2-bitperm+sve2-sm4+sve2-aes+sve2-sha3+tme+i8mm+f32mm+f64mm+bf16+ls64+mops+flagm+pauth -o [file].o [file].S"
+2. For an ELF file, run "aarch64-linux-gnu-gcc -o [file].elf [file].o -nostartfiles -nostdlib -lgcc"
+3. For a bin file, run "aarch64-linux-gnu-objcopy -O binary --only-section=.text [file].o [file].bin"
