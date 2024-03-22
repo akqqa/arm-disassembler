@@ -6,7 +6,6 @@ from common import *
 import elftools
 from elftools.elf.elffile import ELFFile
 
-# Add check for less than 4 bytes read!
 def disassemble(filename, encodingTable):
     """
     Disassembles a given machine code file

@@ -19,7 +19,6 @@ def capstoneDisassemble(line):
     for i in md.disasm(line, 0):
         print("%s\t%s" %(i.mnemonic, i.op_str))
 
-# Add check for less than 4 bytes read!
 def disassemble(filename):
     """
     Disassembles a given machine code file
