@@ -27,7 +27,7 @@ This will display the accuracy of this project compared to objdump
 
 
 ## Files:
-- arm-files.zip - The 2023-12 release of the Arm A64 Instruction Set Architecture Specification, included in case it is no longer available from https://developer.arm.com/Architectures/A-Profile%20Architecture#Software-Download
+- arm-files.zip - the 2023-12 release of the Arm A64 Instruction Set Architecture Specification, included in case it is no longer available from https://developer.arm.com/Architectures/A-Profile%20Architecture#Software-Download
 
 - capstoneDisassembler.py - the implementation of Capstone in Python, used to compare performance with this project.
 
