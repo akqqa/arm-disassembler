@@ -1,5 +1,5 @@
 # arm-disassembler
-CS4099 Project - A program to disassemble arm instructions given the official specification
+CS4099 Bachelors Dissertation Project - A program to disassemble arm instructions given the official specification
 
 ## How to run:
 
