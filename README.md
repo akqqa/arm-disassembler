@@ -1,7 +1,5 @@
 # arm-disassembler
-Bachelors Dissertation Project - A program to disassemble arm instructions given the official specification
-
-A copy of the paper is available on request
+A program to disassemble arm instructions given the official specification
 
 ## How to run:
 
